@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Galerie & Onglets - Exemple Complet</title>
+  <style>
+    /* ============================================
+       RESET & BASE
+       ============================================ */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f9f9f9;
+      padding: 40px 20px;
+      line-height: 1.6;
+      color: #333;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    h2 {
+      margin-bottom: 20px;
+      color: #1a1a1a;
+      font-size: 24px;
+    }
+    
+    section {
+      background: white;
+      padding: 30px;
+      border-radius: 16px;
+      margin-bottom: 40px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+
+    /* ============================================
+       GALERIE D'IMAGES - Styles
+       ============================================ */
+    
+    .product-gallery {
+      max-width: 400px;
+    }
+    
+    .product-gallery__main {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #f5f5f5;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .product-gallery__main-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: opacity 0.3s ease;
+    }
+    
+    .product-gallery__thumbs {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-start;
+    }
+    
+    .product-thumb {
+      width: 70px;
+      height: 70px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 2px solid transparent;
+      cursor: pointer;
+      padding: 0;
+      background: none;
+      transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+    
+    .product-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .product-thumb--active {
+      border-color: #B8860B;
+      transform: scale(1.05);
+    }
+    
+    .product-thumb:hover {
+      border-color: #D4A418;
+    }
+    
+    .product-thumb:focus {
+      outline: 2px solid #B8860B;
+      outline-offset: 2px;
+    }
+
+    /* ============================================
+       SYSTÈME D'ONGLETS - Styles
+       ============================================ */
+    
+    .tabs-container {
+      width: 100%;
+    }
+    
+    .tabs-buttons {
+      display: flex;
+      gap: 4px;
+      border-bottom: 2px solid #e5e5e5;
+      margin-bottom: 20px;
+      overflow-x: auto;
+    }
+    
+    .tab-button {
+      padding: 12px 24px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      color: #666;
+      position: relative;
+      transition: color 0.2s ease;
+      white-space: nowrap;
+    }
+    
+    .tab-button:hover {
+      color: #B8860B;
+    }
+    
+    .tab-button--active {
+      color: #B8860B;
+    }
+    
+    .tab-button--active::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #B8860B;
+    }
+    
+    .tab-button:focus {
+      outline: 2px solid #B8860B;
+      outline-offset: 2px;
+    }
+    
+    .tab-content {
+      display: none;
+      padding: 10px 0;
+      animation: fadeIn 0.3s ease;
+    }
+    
+    .tab-content--active {
+      display: block;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .tab-content h3 {
+      margin-bottom: 12px;
+      color: #1a1a1a;
+    }
+    
+    .tab-content ul {
+      list-style: none;
+      padding: 0;
+    }
+    
+    .tab-content li {
+      padding: 8px 0;
+      padding-left: 20px;
+      position: relative;
+    }
+    
+    .tab-content li::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: #B8860B;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    
+    <!-- ============================================
+         SECTION 1 : GALERIE D'IMAGES
+         ============================================ -->
+    <section>
+      <h2>📷 Galerie d'Images (Produit)</h2>
+      
+      <div class="product-gallery">
+        <!-- Image principale -->
+        <div class="product-gallery__main">
+          <img 
+            id="product-main-image" 
+            src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop" 
+            alt="Image principale du produit"
+            class="product-gallery__main-img"
+          >
+        </div>
+        
+        <!-- Miniatures -->
+        <div class="product-gallery__thumbs">
+          <button 
+            type="button"
+            class="product-thumb product-thumb--active"
+            data-index="0"
+            data-src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop"
+            aria-label="Voir image 1"
+          >
+            <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100&h=100&fit=crop" alt="Miniature 1">
+          </button>
+          
+          <button 
+            type="button"
+            class="product-thumb"
+            data-index="1"
+            data-src="https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=400&h=400&fit=crop"
+            aria-label="Voir image 2"
+          >
+            <img src="https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=100&h=100&fit=crop" alt="Miniature 2">
+          </button>
+          
+          <button 
+            type="button"
+            class="product-thumb"
+            data-index="2"
+            data-src="https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=400&h=400&fit=crop"
+            aria-label="Voir image 3"
+          >
+            <img src="https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=100&h=100&fit=crop" alt="Miniature 3">
+          </button>
+          
+          <button 
+            type="button"
+            class="product-thumb"
+            data-index="3"
+            data-src="https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=400&h=400&fit=crop"
+            aria-label="Voir image 4"
+          >
+            <img src="https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=100&h=100&fit=crop" alt="Miniature 4">
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================
+         SECTION 2 : SYSTÈME D'ONGLETS
+         ============================================ -->
+    <section>
+      <h2>📑 Système d'Onglets</h2>
+      
+      <div class="tabs-container">
+        <!-- Boutons des onglets -->
+        <div class="tabs-buttons" role="tablist">
+          <button 
+            type="button"
+            class="tab-button tab-button--active"
+            data-tab="tab-description"
+            role="tab"
+            aria-selected="true"
+          >
+            Description
+          </button>
+          
+          <button 
+            type="button"
+            class="tab-button"
+            data-tab="tab-caracteristiques"
+            role="tab"
+            aria-selected="false"
+          >
+            Caractéristiques
+          </button>
+          
+          <button 
+            type="button"
+            class="tab-button"
+            data-tab="tab-livraison"
+            role="tab"
+            aria-selected="false"
+          >
+            Livraison
+          </button>
+          
+          <button 
+            type="button"
+            class="tab-button"
+            data-tab="tab-avis"
+            role="tab"
+            aria-selected="false"
+          >
+            Avis
+          </button>
+        </div>
+        
+        <!-- Contenus des onglets -->
+        <div class="tabs-content">
+          <div 
+            id="tab-description" 
+            class="tab-content tab-content--active"
+            role="tabpanel"
+          >
+            <h3>Description du produit</h3>
+            <p>Ce produit exceptionnel allie élégance et fonctionnalité. Conçu avec des matériaux de haute qualité, il offre une durabilité remarquable pour un usage quotidien. Son design moderne s'adapte à tous les styles et toutes les occasions.</p>
+            <p style="margin-top: 12px;">Parfait pour les sorties, les événements spéciaux ou simplement pour affirmer votre personnalité au quotidien. Disponible en plusieurs coloris pour répondre à toutes vos envies.</p>
+          </div>
+          
+          <div 
+            id="tab-caracteristiques" 
+            class="tab-content"
+            role="tabpanel"
+          >
+            <h3>Caractéristiques techniques</h3>
+            <ul>
+              <li>Matériau : Alliage de haute qualité</li>
+              <li>Couleur : Noir / Or</li>
+              <li>Dimensions : 40mm de diamètre</li>
+              <li>Poids : 85 grammes</li>
+              <li>Étanchéité : 3 ATM (résiste aux éclaboussures)</li>
+              <li>Mouvement : Quartz précis</li>
+              <li>Garantie : 30 jours</li>
+            </ul>
+          </div>
+          
+          <div 
+            id="tab-livraison" 
+            class="tab-content"
+            role="tabpanel"
+          >
+            <h3>Livraison & Paiement</h3>
+            <p><strong>Livraison à Conakry :</strong> 24 à 48 heures après confirmation de votre commande. Nous livrons dans tous les quartiers.</p>
+            <p style="margin-top: 12px;"><strong>Paiement à la livraison :</strong> Payez en espèces ou par Mobile Money (Orange Money, MTN) à la réception de votre produit.</p>
+            <p style="margin-top: 12px;"><strong>Livraison dans l'intérieur :</strong> 3 à 5 jours ouvrées via nos partenaires de transport.</p>
+          </div>
+          
+          <div 
+            id="tab-avis" 
+            class="tab-content"
+            role="tabpanel"
+          >
+            <h3>Avis clients</h3>
+            <p><strong>Mamadou S. - Kaloum, Conakry</strong></p>
+            <p>★★★★★</p>
+            <p>"Qualité exceptionnelle et livraison rapide. Je recommande vivement !"</p>
+            <p style="margin-top: 16px;"><strong>Fatou D. - Dixinn, Conakry</strong></p>
+            <p>★★★★★</p>
+            <p>"Service client au top ! Très réactifs sur WhatsApp."</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ============================================
+       JAVASCRIPT
+       ============================================ -->
+  <script>
+    /* ============================================
+       GALERIE D'IMAGES - Script
+       ============================================ */
+    function initProductGallery() {
+      const mainImage = document.getElementById('product-main-image');
+      const thumbnails = document.querySelectorAll('.product-thumb');
+      
+      if (!mainImage || thumbnails.length === 0) {
+        console.warn('Galerie non trouvée');
+        return;
+      }
+      
+      function changeMainImage(clickedThumb) {
+        const newSrc = clickedThumb.dataset.src;
+        
+        if (!newSrc) return;
+        
+        // Animation de transition
+        mainImage.style.opacity = '0';
+        
+        setTimeout(() => {
+          mainImage.src = newSrc;
+          mainImage.style.opacity = '1';
+        }, 150);
+        
+        // Mise à jour des classes actives
+        thumbnails.forEach(thumb => {
+          thumb.classList.remove('product-thumb--active');
+        });
+        
+        clickedThumb.classList.add('product-thumb--active');
+      }
+      
+      // Ajouter l'écouteur sur CHAQUE miniature
+      thumbnails.forEach((thumbnail) => {
+        thumbnail.addEventListener('click', function() {
+          changeMainImage(this);
+        });
+      });
+      
+      console.log('✅ Galerie initialisée : ' + thumbnails.length + ' miniatures');
+    }
+
+    /* ============================================
+       SYSTÈME D'ONGLETS - Script
+       ============================================ */
+    function initTabs() {
+      const tabButtons = document.querySelectorAll('.tab-button');
+      const tabContents = document.querySelectorAll('.tab-content');
+      
+      if (tabButtons.length === 0 || tabContents.length === 0) {
+        console.warn('Onglets non trouvés');
+        return;
+      }
+      
+      function switchTab(clickedButton) {
+        const targetTabId = clickedButton.dataset.tab;
+        
+        if (!targetTabId) return;
+        
+        const targetContent = document.getElementById(targetTabId);
+        
+        if (!targetContent) {
+          console.warn('Contenu non trouvé : ' + targetTabId);
+          return;
+        }
+        
+        // Retirer active de TOUS les boutons
+        tabButtons.forEach(btn => {
+          btn.classList.remove('tab-button--active');
+          btn.setAttribute('aria-selected', 'false');
+        });
+        
+        // Retirer active de TOUS les contenus
+        tabContents.forEach(content => {
+          content.classList.remove('tab-content--active');
+        });
+        
+        // Ajouter active sur le bouton et le contenu cliqués
+        clickedButton.classList.add('tab-button--active');
+        clickedButton.setAttribute('aria-selected', 'true');
+        targetContent.classList.add('tab-content--active');
+      }
+      
+      // Ajouter l'écouteur sur CHAQUE bouton
+      tabButtons.forEach((button) => {
+        button.addEventListener('click', function() {
+          switchTab(this);
+        });
+      });
+      
+      console.log('✅ Onglets initialisés : ' + tabButtons.length + ' onglets');
+    }
+
+    /* ============================================
+       INITIALISATION
+       ============================================ */
+    document.addEventListener('DOMContentLoaded', function() {
+      initProductGallery();
+      initTabs();
+      console.log('🚀 Tous les composants sont initialisés');
+    });
+  </script>
+</body>
+</html>
