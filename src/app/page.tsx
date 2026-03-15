@@ -371,18 +371,12 @@ const ProductCard = memo(function ProductCard({
 // ============================================
 
 export default function MarcheRoyalGuinee() {
-  const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState("Tous");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // S'assurer que le composant est monté côté client
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // Mémoriser les produits filtrés pour éviter les recalculs
   const filteredProducts = useMemo(() => {
@@ -435,19 +429,6 @@ export default function MarcheRoyalGuinee() {
     }
     setMobileMenuOpen(false);
   }, []);
-
-  // Ne rien afficher tant que le composant n'est pas monté côté client
-  // Cela évite les erreurs d'hydratation
-  if (!mounted) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-[#D4A418] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -1224,6 +1205,8 @@ export default function MarcheRoyalGuinee() {
                       rows={4}
                     />
                   </div>
+                  {/* Cloudflare Turnstile */}
+                  <div className="cf-turnstile" data-sitekey="0x4AAAAAACq_AhKdQSJlv5q6"></div>
                   <Button className="w-full bg-gold-gradient text-white hover:opacity-90">
                     Envoyer le message
                   </Button>
