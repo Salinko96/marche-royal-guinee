@@ -1,0 +1,341 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================
+   MARCHÉ ROYAL DE GUINÉE - Luxury Theme
+   Premium Gold/Black/White Color Palette
+   ============================================ */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  
+  /* Luxury Gold Theme Colors */
+  --color-gold-50: #FFF9E6;
+  --color-gold-100: #FFF0B3;
+  --color-gold-200: #FFE680;
+  --color-gold-300: #FFD94D;
+  --color-gold-400: #FFCC1A;
+  --color-gold-500: #D4A418;
+  --color-gold-600: #B8860B;
+  --color-gold-700: #8B6914;
+  --color-gold-800: #5C4A1A;
+  --color-gold-900: #2E250D;
+  
+  /* Sidebar */
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  
+  /* Charts */
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  
+  /* Standard */
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  
+  /* Radius */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.625rem;
+  
+  /* Luxury Theme - Light Mode */
+  --background: #FFFFFF;
+  --foreground: #1A1A1A;
+  --card: #FFFFFF;
+  --card-foreground: #1A1A1A;
+  --popover: #FFFFFF;
+  --popover-foreground: #1A1A1A;
+  
+  /* Gold Primary */
+  --primary: #B8860B;
+  --primary-foreground: #FFFFFF;
+  
+  /* Black Secondary */
+  --secondary: #1A1A1A;
+  --secondary-foreground: #D4A418;
+  
+  /* Muted */
+  --muted: #F5F5F5;
+  --muted-foreground: #666666;
+  
+  /* Accent - Gold */
+  --accent: #D4A418;
+  --accent-foreground: #1A1A1A;
+  
+  /* Destructive */
+  --destructive: #DC2626;
+  
+  /* Borders */
+  --border: #E5E5E5;
+  --input: #E5E5E5;
+  --ring: #B8860B;
+  
+  /* Charts - Gold Theme */
+  --chart-1: #B8860B;
+  --chart-2: #D4A418;
+  --chart-3: #8B6914;
+  --chart-4: #FFD94D;
+  --chart-5: #5C4A1A;
+  
+  /* Sidebar */
+  --sidebar: #FAFAFA;
+  --sidebar-foreground: #1A1A1A;
+  --sidebar-primary: #B8860B;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #FFF9E6;
+  --sidebar-accent-foreground: #1A1A1A;
+  --sidebar-border: #E5E5E5;
+  --sidebar-ring: #B8860B;
+}
+
+.dark {
+  --background: #0D0D0D;
+  --foreground: #FAFAFA;
+  --card: #1A1A1A;
+  --card-foreground: #FAFAFA;
+  --popover: #1A1A1A;
+  --popover-foreground: #FAFAFA;
+  
+  /* Gold Primary */
+  --primary: #D4A418;
+  --primary-foreground: #0D0D0D;
+  
+  /* Gold Secondary */
+  --secondary: #1A1A1A;
+  --secondary-foreground: #D4A418;
+  
+  /* Muted */
+  --muted: #262626;
+  --muted-foreground: #A3A3A3;
+  
+  /* Accent - Gold */
+  --accent: #D4A418;
+  --accent-foreground: #0D0D0D;
+  
+  /* Destructive */
+  --destructive: #EF4444;
+  
+  /* Borders */
+  --border: #262626;
+  --input: #262626;
+  --ring: #D4A418;
+  
+  /* Charts */
+  --chart-1: #D4A418;
+  --chart-2: #B8860B;
+  --chart-3: #FFD94D;
+  --chart-4: #8B6914;
+  --chart-5: #FFE680;
+  
+  /* Sidebar */
+  --sidebar: #1A1A1A;
+  --sidebar-foreground: #FAFAFA;
+  --sidebar-primary: #D4A418;
+  --sidebar-primary-foreground: #0D0D0D;
+  --sidebar-accent: #262626;
+  --sidebar-accent-foreground: #FAFAFA;
+  --sidebar-border: #262626;
+  --sidebar-ring: #D4A418;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* ============================================
+   Custom Utility Classes
+   ============================================ */
+
+/* Gold Gradient Text */
+.text-gold-gradient {
+  background: linear-gradient(135deg, #D4A418 0%, #B8860B 50%, #8B6914 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Gold Button Gradient */
+.bg-gold-gradient {
+  background: linear-gradient(135deg, #D4A418 0%, #B8860B 100%);
+}
+
+/* Gold Border */
+.border-gold {
+  border-color: #B8860B;
+}
+
+/* Luxury Shadow */
+.luxury-shadow {
+  box-shadow: 0 4px 20px rgba(184, 134, 11, 0.15);
+}
+
+/* Premium Card Hover */
+.premium-card {
+  transition: all 0.3s ease;
+}
+
+.premium-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(184, 134, 11, 0.2);
+}
+
+/* Smooth Scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #D4A418, #B8860B);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #B8860B, #8B6914);
+}
+
+/* Hero Background Pattern */
+.hero-pattern {
+  background-image: 
+    radial-gradient(circle at 20% 50%, rgba(212, 164, 24, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(184, 134, 11, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 40% 80%, rgba(139, 105, 20, 0.06) 0%, transparent 40%);
+}
+
+/* Animation Keyframes */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(212, 164, 24, 0.3), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* WhatsApp Button */
+.whatsapp-btn {
+  background: #25D366;
+  transition: all 0.3s ease;
+}
+
+.whatsapp-btn:hover {
+  background: #128C7E;
+  transform: scale(1.02);
+}
+
+/* Price Tag Style */
+.price-tag {
+  font-family: 'Georgia', serif;
+  letter-spacing: 0.05em;
+}
+
+/* Product Card Image */
+.product-image-container {
+  overflow: hidden;
+  position: relative;
+}
+
+.product-image-container img {
+  transition: transform 0.5s ease;
+}
+
+.product-image-container:hover img {
+  transform: scale(1.05);
+}
+
+/* Next.js Image with fill optimization */
+.product-image-container img,
+img[loading="eager"] {
+  will-change: transform;
+}
+
+/* Fast image loading - no blur placeholder */
+img {
+  image-rendering: -webkit-optimize-contrast;
+}
+
+/* Modal image optimization */
+.modal-image-container {
+  overflow: hidden;
+  position: relative;
+}
+
+.modal-image-container img {
+  transition: opacity 0.15s ease;
+}
+
+/* FAQ Accordion Custom */
+.faq-accordion button[data-state="open"] .faq-icon {
+  transform: rotate(180deg);
+}
+
+.faq-icon {
+  transition: transform 0.2s ease;
+}
