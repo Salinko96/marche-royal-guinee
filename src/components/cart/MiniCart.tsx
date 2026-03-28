@@ -18,7 +18,9 @@ import {
   Minus,
   Trash2,
   MessageCircle,
+  ArrowRight,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 /**
  * Mini-panier persistant avec icône + nombre d'articles
@@ -82,8 +84,14 @@ export function CartPanel() {
     getTotalItems,
   } = useCartStore();
 
+  const router = useRouter();
   const totalPrice = getTotalPrice();
   const totalItems = getTotalItems();
+
+  const handleCheckout = () => {
+    closeCart();
+    router.push('/checkout');
+  };
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && closeCart()}>
@@ -200,15 +208,25 @@ export function CartPanel() {
                 </span>
               </div>
 
-              {/* Commander sur WhatsApp */}
+              {/* Bouton principal : Passer la commande */}
               <Button
-                className="w-full bg-green-600 hover:bg-green-700 text-white text-lg py-6"
+                className="w-full bg-amber-500 hover:bg-amber-600 text-white text-lg py-6 font-bold shadow-md"
+                onClick={handleCheckout}
+              >
+                <ArrowRight className="mr-2 h-5 w-5" />
+                Passer la commande
+              </Button>
+
+              {/* Option secondaire : WhatsApp */}
+              <Button
+                variant="outline"
+                className="w-full text-green-700 border-green-300 hover:bg-green-50"
                 onClick={() =>
                   window.open(generateCartWhatsAppLink(items), "_blank")
                 }
               >
-                <MessageCircle className="mr-2 h-5 w-5" />
-                Commander sur WhatsApp
+                <MessageCircle className="mr-2 h-4 w-4" />
+                Ou commander via WhatsApp
               </Button>
 
               <p className="text-xs text-gray-400 text-center">

@@ -46,10 +46,17 @@ export default function CommandesPage() {
 
   const fetchOrders = async () => {
     try {
-      const response = await fetch('/api/admin/products'); // Note: replace with /api/admin/orders when available
+      const response = await fetch('/api/admin/orders');
       if (response.ok) {
         const data = await response.json();
-        setOrders(data.orders || []);
+        // L'API retourne un tableau direct, on parse les items JSON si nécessaire
+        const orders = Array.isArray(data) ? data : (data.orders || []);
+        const parsed = orders.map((o: any) => ({
+          ...o,
+          items: typeof o.items === 'string' ? JSON.parse(o.items) : (o.items || []),
+          total: o.totalAmount ?? o.total ?? 0,
+        }));
+        setOrders(parsed);
       }
     } catch (error) {
       console.error('Error fetching orders:', error);
