@@ -13,6 +13,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// User model - kept from original schema
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -21,12 +22,70 @@ model User {
   updatedAt DateTime @updatedAt
 }
 
-model Post {
+// Product model - for e-commerce catalog
+model Product {
+  id                 String   @id @default(cuid())
+  name               String
+  slug               String   @unique
+  category           String
+  price              Int      // Price in GNF (Guinean Franc)
+  shortDescription   String
+  longDescription    String
+  characteristics    String   // JSON string
+  highlights         String   // JSON string
+  image              String   // Main product image
+  images             String   // JSON array of images
+  compatibility      String?  // JSON string, optional
+  inStock            Boolean  @default(true)
+  featured           Boolean  @default(false)
+  rating             Float    @default(5.0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+// Order model - for order management
+model Order {
+  id             String   @id @default(cuid())
+  customerName   String
+  customerPhone  String
+  customerEmail  String?
+  customerAddress String?
+  items          String   // JSON array of order items
+  totalAmount    Int      // Total in GNF
+  status         String   @default("pending") // pending/confirmed/shipped/delivered/cancelled
+  paymentMethod  String   @default("cash") // cash/orange_money/mtn_money
+  paymentStatus  String   @default("pending") // pending/completed/failed
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// Admin model - for admin user management
+model Admin {
   id        String   @id @default(cuid())
-  title     String
-  content   String?
-  published Boolean  @default(false)
-  authorId  String
+  email     String   @unique
+  password  String   // Hashed password
+  name      String
+  role      String   @default("admin") // admin/moderator/support
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ContactMessage model - for contact form submissions
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// SiteSettings model - for site configuration
+model SiteSettings {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
   updatedAt DateTime @updatedAt
 }
