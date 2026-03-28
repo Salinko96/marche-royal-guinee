@@ -37,3 +37,4 @@ db/*.db
 *.tsbuildinfo
 next-env.d.ts
 dev.log
+.vercel
