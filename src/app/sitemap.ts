@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next'
 import { db } from '@/lib/db'
 
-const BASE_URL = 'https://marcheroyalguinee.com'
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://marche-royal-guinee.vercel.app'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Pages statiques
