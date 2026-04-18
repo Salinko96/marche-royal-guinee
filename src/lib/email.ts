@@ -9,8 +9,8 @@ function getResend(): Resend {
 const STORE_NAME = 'MARCHÉ ROYAL DE GUINÉE'
 const STORE_PHONE = '+224 623 457 689'
 const STORE_ADDRESS = 'Lambanyi, Conakry – Guinée'
-const STORE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://marcheroyalguinee.com'
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'commandes@marcheroyalguinee.com'
+const STORE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://marche-royal-guinee.vercel.app'
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
 
 const formatPrice = (price: number) =>
   new Intl.NumberFormat('fr-GN').format(price) + ' GNF'
