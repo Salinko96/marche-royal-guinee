@@ -493,16 +493,30 @@ export default function ProduitDetailPage() {
   }, [product, addToCart, variants, selectedVariants, finalPrice, variantLabel]);
 
   // Partager
-  const handleShare = useCallback(() => {
-    if (navigator.share) {
-      navigator.share({
-        title: product?.name,
-        text: product?.shortDescription,
-        url: window.location.href,
-      });
-    } else {
-      navigator.clipboard.writeText(window.location.href);
+  const [showShareMenu, setShowShareMenu] = useState(false);
+
+  const handleShare = useCallback((platform?: string) => {
+    const url = window.location.href;
+    const text = `${product?.name} — Découvrez ce produit sur Marché Royal de Guinée`;
+
+    if (!platform) {
+      if (navigator.share) {
+        navigator.share({ title: product?.name, text, url });
+        return;
+      }
+      setShowShareMenu((v) => !v);
+      return;
     }
+
+    if (platform === 'whatsapp') {
+      window.open(`https://wa.me/?text=${encodeURIComponent(text + '\n' + url)}`, '_blank');
+    } else if (platform === 'facebook') {
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
+    } else if (platform === 'copy') {
+      navigator.clipboard.writeText(url);
+      toast.success('Lien copié !');
+    }
+    setShowShareMenu(false);
   }, [product]);
 
   // ============================================
@@ -722,16 +736,42 @@ export default function ProduitDetailPage() {
             </div>
 
             {/* Actions secondaires */}
-            <div className="flex gap-3 mb-6">
+            <div className="flex gap-3 mb-6 relative">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleShare}
+                onClick={() => handleShare()}
                 className="text-gray-600"
               >
                 <Share2 className="mr-2 h-4 w-4" />
                 Partager
               </Button>
+
+              {showShareMenu && (
+                <div className="absolute top-10 left-0 z-50 bg-white border border-gray-200 rounded-xl shadow-xl p-2 flex flex-col gap-1 min-w-[180px]">
+                  <button
+                    onClick={() => handleShare('whatsapp')}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-green-50 text-sm text-gray-700 hover:text-green-700 transition-colors"
+                  >
+                    <MessageCircle className="h-4 w-4 text-green-600" />
+                    WhatsApp
+                  </button>
+                  <button
+                    onClick={() => handleShare('facebook')}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-blue-50 text-sm text-gray-700 hover:text-blue-700 transition-colors"
+                  >
+                    <Share2 className="h-4 w-4 text-blue-600" />
+                    Facebook
+                  </button>
+                  <button
+                    onClick={() => handleShare('copy')}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-sm text-gray-700 transition-colors"
+                  >
+                    <CheckCircle className="h-4 w-4 text-gray-500" />
+                    Copier le lien
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Avantages */}
