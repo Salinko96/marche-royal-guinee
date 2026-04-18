@@ -124,7 +124,7 @@ export function CartPanel() {
             <div className="space-y-4">
               {items.map((item) => (
                 <div
-                  key={item.id}
+                  key={`${item.id}:${item.variant ?? ''}`}
                   className="flex gap-3 p-3 bg-gray-50 rounded-xl"
                 >
                   {/* Image produit */}
@@ -141,6 +141,9 @@ export function CartPanel() {
                     <h4 className="font-medium text-gray-900 text-sm line-clamp-2">
                       {item.name}
                     </h4>
+                    {item.variant && (
+                      <p className="text-xs text-gray-500 mt-0.5">{item.variant}</p>
+                    )}
                     <p className="text-[#B8860B] font-bold text-sm mt-1">
                       {formatPrice(item.price)}
                     </p>
@@ -149,7 +152,7 @@ export function CartPanel() {
                     <div className="flex items-center gap-2 mt-2">
                       <button
                         onClick={() =>
-                          updateQuantity(item.id, item.quantity - 1)
+                          updateQuantity(item.id, item.quantity - 1, item.variant)
                         }
                         className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors"
                         aria-label="Diminuer la quantité"
@@ -161,7 +164,7 @@ export function CartPanel() {
                       </span>
                       <button
                         onClick={() =>
-                          updateQuantity(item.id, item.quantity + 1)
+                          updateQuantity(item.id, item.quantity + 1, item.variant)
                         }
                         className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors"
                         aria-label="Augmenter la quantité"
@@ -171,7 +174,7 @@ export function CartPanel() {
 
                       {/* Supprimer */}
                       <button
-                        onClick={() => removeItem(item.id)}
+                        onClick={() => removeItem(item.id, item.variant)}
                         className="ml-auto text-red-400 hover:text-red-600 transition-colors"
                         aria-label={`Supprimer ${item.name} du panier`}
                       >

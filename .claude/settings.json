@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "defaultMode": "bypassPermissions"
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"systemMessage\": \"✅ Plugin auto-debug activé — Toute erreur de build/deploy sera détectée et corrigée automatiquement.\"}'",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/junior/Documents/marche-royal-guinee-main/.claude/auto-debug.sh",
+            "timeout": 10,
+            "statusMessage": "Vérification automatique des erreurs..."
+          }
+        ]
+      }
+    ]
+  }
+}

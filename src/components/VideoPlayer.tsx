@@ -195,7 +195,7 @@ export function VideoShowcaseSection() {
   // ==========================================
   const mainVideo = {
     src: "https://aigc-files.bigmodel.cn/api/cogvideo/c62a175e-1f1e-11f1-a4db-02e07114cd92_0.mp4", // 🔴 URL de la vidéo principale
-    poster: "/Luxury Big Window AG Glass Matte.jpeg", // 🔴 Image de couverture
+    poster: "/luxury-glass-matte.jpeg", // 🔴 Image de couverture
     title: "Découvrez la Coque AG Glass Premium",
   };
 
@@ -207,12 +207,12 @@ export function VideoShowcaseSection() {
     },
     {
       src: "https://aigc-files.bigmodel.cn/api/cogvideo/6bf984ac-1f20-11f1-913a-f2c33534665f_0.mp4", // 🔴 Vidéo 2
-      poster: "/precious duke.jpg",
+      poster: "/precious-duke.jpg",
       label: "Montre Cartier",
     },
     {
       src: "https://aigc-files.bigmodel.cn/api/cogvideo/c62a175e-1f1e-11f1-a4db-02e07114cd92_0.mp4", // 🔴 Vidéo 3
-      poster: "/Luxury Big Window AG Glass Matte.jpeg",
+      poster: "/luxury-glass-matte.jpeg",
       label: "Coque AG Glass",
     },
   ];

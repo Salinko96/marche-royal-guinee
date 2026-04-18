@@ -36,16 +36,16 @@ import {
   CheckCircle,
   ArrowRight,
   PlayCircle,
-  Pause,
-  Volume2,
-  VolumeX,
   ShoppingCart,
   Zap,
 } from "lucide-react";
 import { CartButton, CartPanel } from "@/components/cart/MiniCart";
+import NewsletterForm from "@/components/NewsletterForm";
 import { useCartStore } from "@/store/cartStore";
+import { useAuthStore } from "@/store/authStore";
 import { fbPixelEvent } from "@/components/tracking/FacebookPixel";
 import { gaEvent } from "@/components/tracking/GoogleAnalytics";
+import { toast } from "sonner";
 
 /* ============================================
    MARCHÉ ROYAL DE GUINÉE
@@ -57,10 +57,11 @@ import { gaEvent } from "@/components/tracking/GoogleAnalytics";
 // ============================================
 
 interface Product {
-  id: number;
+  id: string;
   name: string;
   category: string;
   price: number;
+  originalPrice?: number;
   shortDescription: string;
   longDescription: string;
   characteristics: string[];
@@ -68,6 +69,12 @@ interface Product {
   image: string;
   images: string[];
   compatibility?: string[];
+  isRealPhoto?: boolean;
+  badge?: string;
+  isNew?: boolean;
+  stockQuantity?: number;
+  inStock?: boolean;
+  variants?: { name: string; options: { label: string; extraPrice: number }[] }[];
 }
 
 interface Testimonial {
@@ -78,19 +85,62 @@ interface Testimonial {
   rating: number;
 }
 
-// Product Data - Contenu optimisé pour le marché guinéen
-const products: Product[] = [
+// ============================================
+// Transformation d'un produit DB → Product UI
+// ============================================
+function dbToProduct(p: any): Product {
+  let characteristics: string[] = [];
+  let highlights: string[] = [];
+  let images: string[] = [];
+  let compatibility: string[] | undefined;
+  let variants: { name: string; options: { label: string; extraPrice: number }[] }[] | undefined;
+  try { const obj = JSON.parse(p.characteristics || '[]'); characteristics = Array.isArray(obj) ? obj : Object.values(obj); } catch {}
+  try { highlights = JSON.parse(p.highlights || '[]'); } catch {}
+  try { images = JSON.parse(p.images || '[]'); } catch {}
+  try { if (p.compatibility) compatibility = JSON.parse(p.compatibility); } catch {}
+  try { if (p.variants) variants = JSON.parse(p.variants); } catch {}
+  if (p.image && !images.includes(p.image)) images = [p.image, ...images];
+  return {
+    id: p.id,
+    name: p.name,
+    category: p.category,
+    price: p.price,
+    originalPrice: p.originalPrice ?? undefined,
+    shortDescription: p.shortDescription,
+    longDescription: p.longDescription,
+    characteristics,
+    highlights,
+    image: images[0] || p.image || '',
+    images,
+    compatibility,
+    isRealPhoto: p.isRealPhoto ?? false,
+    badge: p.badge ?? undefined,
+    isNew: p.isNew ?? false,
+    stockQuantity: p.stockQuantity ?? undefined,
+    inStock: p.inStock ?? true,
+    variants: variants && variants.length > 0 ? variants : undefined,
+  };
+}
+
+// Produits de démonstration affichés pendant le chargement
+const FALLBACK_PRODUCTS: Product[] = [
   {
-    id: 1,
-    name: "Montre Richard Mille – Édition Tendance",
+    id: "1",
+    name: "Montre Style Royal RM – Édition Tendance",
     category: "Montres",
     price: 350000,
-    shortDescription: "Style luxe inspiré des modèles Richard Mille, idéale pour vos sorties, événements spéciaux et cadeaux marquants.",
-    longDescription: `La Montre Richard Mille – Édition Tendance incarne l'excellence horlogère rendue accessible au plus grand nombre en Guinée. Ce chef-d'œuvre de design s'inspire des lignes emblématiques et audacieuses de la maison Richard Mille, offrant un look résolument contemporain qui ne passera pas inaperçu au poignet. Son boîtier aux formes géométriques pures et son cadran sophistiqué avec détails raffinés en font l'accessoire parfait pour ceux qui souhaitent affirmer leur style avec confiance et originalité.
+    originalPrice: 480000,
+    isRealPhoto: true,
+    badge: "Best-seller",
+    isNew: false,
+    stockQuantity: 15,
+    inStock: true,
+    shortDescription: "Montre de style luxe contemporain, idéale pour vos sorties, événements spéciaux et cadeaux marquants.",
+    longDescription: `La Montre Style Royal RM – Édition Tendance incarne l'excellence horlogère rendue accessible au plus grand nombre en Guinée. Son design audacieux aux formes géométriques pures et son cadran sophistiqué avec détails raffinés en font l'accessoire parfait pour ceux qui souhaitent affirmer leur style avec confiance et originalité.
 
-Cette montre tendance accompagne toutes vos occasions importantes : sorties entre amis à Conakry, soirées VIP, événements familiaux ou rencontres professionnelles décontractées. Elle constitue également un cadeau mémorable pour un proche qui mérite une attention spéciale. Le mariage parfait entre l'artisanat traditionnel et l'esthétique moderne se reflète dans chaque détail de cette pièce exceptionnelle. Son design unique capture l'essence du luxe contemporain tout en restant parfaitement portable au quotidien.
+Cette montre tendance accompagne toutes vos occasions importantes : sorties entre amis à Conakry, soirées VIP, événements familiaux ou rencontres professionnelles décontractées. Elle constitue également un cadeau mémorable pour un proche qui mérite une attention spéciale. Son design unique capture l'essence du luxe contemporain tout en restant parfaitement portable au quotidien.
 
-Conçue pour durer, cette montre allie robustesse et raffinement dans un équilibre remarquable. Son mécanisme de précision garantit une fiabilité absolue au fil des heures, tandis que son design audacieux traverse les modes sans jamais se démoder. Portez-la fièrement et laissez votre personnalité distinctive briller à travers cet accessoire qui en dit long sur votre goût pour l'excellence. Disponible exclusivement chez MARCHÉ ROYAL DE GUINÉE, avec livraison rapide à Conakry.
+Conçue pour durer, cette montre allie robustesse et raffinement dans un équilibre remarquable. Son mécanisme de précision garantit une fiabilité absolue au fil des heures, tandis que son design audacieux traverse les modes sans jamais se démoder. Disponible exclusivement chez MARCHÉ ROYAL DE GUINÉE, avec livraison rapide à Conakry.
 
 Cette pièce représente bien plus qu'une simple montre : c'est un véritable statement de style pour l'homme ou la femme moderne de Conakry qui refuse la banalité. Son allure premium attire les regards et suscite les compliments, vous distinguant naturellement dans toute occasion.`,
     characteristics: [
@@ -115,27 +165,32 @@ Cette pièce représente bien plus qu'une simple montre : c'est un véritable st
     images: [
       "/blanche.jpg",
       "/vert.jpg", 
-      "/rouge jaune vert noir.jpg",
+      "/rouge-jaune-vert-noir.jpg",
       "/noir.jpg",
       "/rouge.jpg",
       "/jaune.jpg",
       "/bleu.jpg",
-      "/belle vue bleu.jpg"
+      "/belle-vue-bleu.jpg"
     ],
   },
   {
-    id: 2,
-    name: "Montre Cartier – Élégance Classique",
+    id: "2",
+    name: "Montre Élégance Gold – Style Classique",
     category: "Montres",
     price: 500000,
-    shortDescription: "L'élégance classique inspirée de la maison Cartier pour vos occasions officielles, cérémonies et moments importants.",
-    longDescription: `La Montre Cartier – Élégance Classique représente le summum du raffinement et de la sophistication horlogère. Inspirée par l'héritage prestigieux de la maison Cartier, cette montre incarne un classicisme indémodable qui traverse les époques avec une grâce inaltérable. Son design épuré aux lignes harmonieuses et son cadran élégant en font le compagnon idéal des hommes et femmes d'affaires de Conakry qui comprennent que l'allure est le premier message que l'on adresse au monde.
+    isRealPhoto: true,
+    badge: "Sélection premium",
+    isNew: true,
+    stockQuantity: 8,
+    inStock: true,
+    shortDescription: "Montre de style classique élégant pour vos occasions officielles, cérémonies et moments importants. Disponible à Conakry.",
+    longDescription: `La Montre Élégance Gold représente le summum du raffinement et de la sophistication horlogère. Son design classique intemporel aux lignes harmonieuses en fait le compagnon idéal des hommes et femmes d'affaires de Conakry qui comprennent que l'allure est le premier message que l'on adresse au monde.
 
-Cette pièce d'exception est façonnée pour ceux qui apprécient les valeurs sûres de l'horlogerie classique. Son cadran raffiné avec aiguilles élégantes et index précis témoigne d'un savoir-faire artisanal remarquable. Que ce soit pour un mariage, une réunion d'affaires importante, une cérémonie officielle ou simplement pour affirmer votre statut social avec discrétion, cette montre Cartier sera votre alliée de confiance en toutes circonstances.
+Cette pièce d'exception est façonnée pour ceux qui apprécient les valeurs sûres de l'horlogerie classique. Son cadran raffiné avec aiguilles élégantes et index précis témoigne d'un savoir-faire artisanal remarquable. Que ce soit pour un mariage, une réunion d'affaires importante, une cérémonie officielle ou simplement pour affirmer votre statut avec discrétion.
 
-Offrir cette montre, c'est offrir bien plus qu'un simple accessoire : c'est transmettre un symbole de réussite, de bon goût et d'ambition. Son allure distinguée séduira instantanément les amateurs de belles pièces horlogères qui reconnaissent la qualité au premier regard. Le bracelet en cuir véritable apporte une touche de chaleur et de noblesse, tandis que le boîtier poli reflète la lumière avec une subtilité qui ne cherche pas à briller artificiellement.
+Offrir cette montre, c'est offrir bien plus qu'un simple accessoire : c'est transmettre un symbole de réussite, de bon goût et d'ambition. Son allure distinguée séduira instantanément les amateurs de belles pièces horlogères qui reconnaissent la qualité au premier regard.
 
-Disponible à Lambanyi, Conakry, avec la garantie de qualité MARCHÉ ROYAL DE GUINÉE, cette pièce représente un investissement dans votre image. Elle accompagne les moments importants de votre vie avec une présence à la fois discrète et marquante. Le luxe véritable ne crie pas : il suggère, il inspire, il impressionne par sa maîtrise.`,
+Disponible à Lambanyi, Conakry, avec la garantie de qualité MARCHÉ ROYAL DE GUINÉE. Elle accompagne les moments importants de votre vie avec une présence à la fois discrète et marquante.`,
     characteristics: [
       "Boîtier en acier inoxydable poli miroir – finitions premium",
       "Verre saphir anti-reflet pour une lisibilité parfaite",
@@ -154,23 +209,26 @@ Disponible à Lambanyi, Conakry, avec la garantie de qualité MARCHÉ ROYAL DE G
       "Qualité supérieure garantie par notre sélection rigoureuse",
       "Livraison express à Conakry avec paiement à la livraison possible",
     ],
-    image: "/precious duke.jpg",
+    image: "/precious-duke.jpg",
     images: [
-      "/precious duke.jpg", 
-      "/_ (1).jpeg", 
-      "/_ (2).jpeg",
-      "/_ (6).jpeg",
-      "/_ (8).jpeg",
-      "/_ (9).jpeg",
+      "/precious-duke.jpg", 
+      "/montre-1.jpeg", 
+      "/montre-2.jpeg",
+      "/montre-6.jpeg",
+      "/montre-8.jpeg",
+      "/montre-9.jpeg",
       "/_.jpeg",
-      "/7437519256192966656.png"
+      "/7437519256192966656.jpg"
     ],
   },
   {
-    id: 3,
+    id: "3",
     name: "Coque AG Glass Premium",
     category: "Accessoires Téléphone",
     price: 480000,
+    isRealPhoto: true,
+    stockQuantity: 25,
+    inStock: true,
     shortDescription: "Protection premium en verre trempé AG avec finition matte élégante. Résistance aux chocs, anti-traces et design ultra-fin.",
     longDescription: `La Coque AG Glass Premium offre une protection exceptionnelle pour votre smartphone tout en préservant son élégance naturelle et sa prise en main confortable. Conçue avec les dernières technologies de verre trempé renforcé de qualité 9H, cette coque combine une résistance aux chocs hors pair avec une esthétique raffinée. Son design ultra-fin de seulement 0.3mm s'adapte parfaitement à la forme de votre téléphone sans ajouter de volume inutile ni compromettre son ergonomie.
 
@@ -197,8 +255,8 @@ Vivez votre vie active à Conakry avec la tranquillité d'esprit totale, sachant
       "Finition matte qui reste propre et élégante toute la journée",
       "Idéal pour la vie active – transport, travail, sorties à Conakry",
     ],
-    image: "/Luxury Big Window AG Glass Matte.jpeg",
-    images: ["/Luxury Big Window AG Glass Matte.jpeg", "/Luxury Big Window AG Glass Matte (1).jpeg", "/f9d01d82-379f-42b7-9d7b-49ea74dbe43e.jpg"],
+    image: "/luxury-glass-matte.jpeg",
+    images: ["/luxury-glass-matte.jpeg", "/luxury-glass-matte-2.jpeg", "/f9d01d82-379f-42b7-9d7b-49ea74dbe43e.jpg"],
     compatibility: [
       "iPhone : modèles 13, 14, 15, 16 (toutes versions)",
       "Samsung Galaxy : S21, S22, S23, S24 (toutes versions)",
@@ -217,14 +275,14 @@ const testimonials: Testimonial[] = [
     id: 1,
     name: "Mamadou S.",
     location: "Kaloum, Conakry",
-    text: "J'ai commandé une montre Richard Mille pour mon frère. La qualité est exceptionnelle et la livraison a été rapide. Je recommande vivement MARCHÉ ROYAL DE GUINÉE !",
+    text: "J'ai commandé une montre de luxe pour mon frère. La qualité est exceptionnelle et la livraison a été rapide. Je recommande vivement MARCHÉ ROYAL DE GUINÉE !",
     rating: 5,
   },
   {
     id: 2,
     name: "Fatou D.",
     location: "Dixinn, Conakry",
-    text: "Service client au top ! J'ai eu un problème avec ma commande et ils ont été très réactifs sur WhatsApp. Ma montre Cartier est magnifique, merci infiniment.",
+    text: "Service client au top ! J'ai eu un problème avec ma commande et ils ont été très réactifs sur WhatsApp. Ma montre est magnifique, merci infiniment.",
     rating: 5,
   },
   {
@@ -280,8 +338,7 @@ const faqData = [
   },
 ];
 
-// Categories
-const categories = ["Tous", "Montres", "Accessoires Téléphone"];
+// Categories (calculées dynamiquement dans le composant)
 
 // WhatsApp link generator
 const generateWhatsAppLink = (productName: string): string => {
@@ -305,6 +362,158 @@ const preloadImage = (src: string) => {
 };
 
 // ============================================
+// Composant ReviewsSection — avis avec dates
+// ============================================
+function ReviewsSection({ productId }: { productId: string }) {
+  const [reviews, setReviews] = useState<{ id: string; customerName: string; rating: number; comment: string; createdAt: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ customerName: '', rating: 5, comment: '' });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    setLoading(true);
+    setSubmitted(false);
+    fetch(`/api/reviews?productId=${productId}`)
+      .then(r => r.ok ? r.json() : { reviews: [] })
+      .then(data => { setReviews(data.reviews || []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [productId]);
+
+  const handleSubmit = async () => {
+    if (!form.customerName.trim() || !form.comment.trim()) return;
+    setSubmitting(true);
+    try {
+      await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId, ...form }),
+      });
+      setSubmitted(true);
+      setShowForm(false);
+      setForm({ customerName: '', rating: 5, comment: '' });
+    } catch {}
+    setSubmitting(false);
+  };
+
+  const formatDate = (iso: string) => {
+    try {
+      return new Date(iso).toLocaleDateString('fr-GN', { day: 'numeric', month: 'long', year: 'numeric' });
+    } catch { return ''; }
+  };
+
+  if (loading) return null;
+
+  return (
+    <div className="border-t pt-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <h4 className="font-semibold text-gray-900">
+          Avis clients {reviews.length > 0 && <span className="text-gray-400 font-normal text-sm">({reviews.length})</span>}
+        </h4>
+        {!showForm && !submitted && (
+          <button
+            onClick={() => setShowForm(true)}
+            className="text-sm text-[#B8860B] hover:underline font-medium"
+          >
+            + Laisser un avis
+          </button>
+        )}
+      </div>
+
+      {submitted && (
+        <p className="text-sm text-green-700 bg-green-50 border border-green-200 px-3 py-2 rounded-lg">
+          Merci ! Votre avis est en attente de validation.
+        </p>
+      )}
+
+      {showForm && (
+        <div className="bg-gray-50 rounded-xl p-4 space-y-3 border border-gray-200">
+          <input
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            placeholder="Votre prénom ou nom"
+            value={form.customerName}
+            onChange={e => setForm(f => ({ ...f, customerName: e.target.value }))}
+          />
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">Note :</span>
+            {[1,2,3,4,5].map(n => (
+              <button key={n} type="button" onClick={() => setForm(f => ({ ...f, rating: n }))}>
+                <Star className={`h-5 w-5 ${n <= form.rating ? 'fill-[#D4A418] text-[#D4A418]' : 'text-gray-300'}`} />
+              </button>
+            ))}
+          </div>
+          <textarea
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none"
+            rows={3}
+            placeholder="Décrivez votre expérience..."
+            value={form.comment}
+            onChange={e => setForm(f => ({ ...f, comment: e.target.value }))}
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="flex-1 bg-[#B8860B] hover:bg-[#9A7209] text-white text-sm font-medium py-2 rounded-lg disabled:opacity-60"
+            >
+              {submitting ? 'Envoi...' : 'Envoyer mon avis'}
+            </button>
+            <button onClick={() => setShowForm(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600">
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
+
+      {reviews.length === 0 ? (
+        <p className="text-sm text-gray-400 italic">Aucun avis pour ce produit. Soyez le premier !</p>
+      ) : (
+        <div className="space-y-3">
+          {reviews.map(r => (
+            <div key={r.id} className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-sm text-gray-900">{r.customerName}</span>
+                  <div className="flex gap-0.5">
+                    {[1,2,3,4,5].map(n => (
+                      <Star key={n} className={`h-3 w-3 ${n <= r.rating ? 'fill-[#D4A418] text-[#D4A418]' : 'text-gray-300'}`} />
+                    ))}
+                  </div>
+                </div>
+                <span className="text-xs text-gray-400">{formatDate(r.createdAt)}</span>
+              </div>
+              <p className="text-sm text-gray-600">{r.comment}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================
+// Skeleton card — affiché pendant le chargement
+// ============================================
+function ProductSkeleton() {
+  return (
+    <div className="rounded-2xl border-0 shadow-lg overflow-hidden bg-white animate-pulse">
+      <div className="aspect-square bg-gradient-to-br from-gray-200 to-gray-100" />
+      <div className="p-5 space-y-3">
+        <div className="h-3 bg-gray-200 rounded w-1/3" />
+        <div className="h-5 bg-gray-200 rounded w-3/4" />
+        <div className="h-4 bg-gray-100 rounded w-full" />
+        <div className="h-4 bg-gray-100 rounded w-5/6" />
+        <div className="h-7 bg-gray-200 rounded w-1/2 mt-2" />
+        <div className="flex gap-2 pt-1">
+          <div className="h-10 bg-gray-200 rounded flex-1" />
+          <div className="h-10 w-10 bg-gray-200 rounded" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
 // Composant ProductCard optimisé avec memo
 // ============================================
 const ProductCard = memo(function ProductCard({
@@ -312,12 +521,26 @@ const ProductCard = memo(function ProductCard({
   onSelect,
   onHover,
   onQuickBuy,
+  priority,
 }: {
   product: Product;
   onSelect: (product: Product) => void;
   onHover: (product: Product) => void;
   onQuickBuy: (product: Product) => void;
+  priority?: boolean;
 }) {
+  const discount = product.originalPrice && product.originalPrice > product.price
+    ? Math.round((1 - product.price / product.originalPrice) * 100)
+    : 0;
+
+  const stockLabel = product.inStock === false
+    ? { text: 'Rupture de stock', cls: 'bg-red-100 text-red-700' }
+    : product.stockQuantity !== undefined && product.stockQuantity <= 5
+    ? { text: `Plus que ${product.stockQuantity} en stock`, cls: 'bg-orange-100 text-orange-700' }
+    : product.stockQuantity !== undefined && product.stockQuantity <= 15
+    ? { text: 'Stock faible', cls: 'bg-yellow-100 text-yellow-700' }
+    : { text: 'En stock', cls: 'bg-green-100 text-green-700' };
+
   return (
     <Card
       className="premium-card border-0 shadow-lg overflow-hidden bg-white cursor-pointer group"
@@ -334,15 +557,35 @@ const ProductCard = memo(function ProductCard({
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
           className="object-cover transition-transform duration-500 group-hover:scale-105"
-          loading="lazy"
-          priority={product.id === 1}
+          loading={priority ? 'eager' : 'lazy'}
+          priority={priority ?? false}
         />
-        {/* Category Badge */}
-        <div className="absolute top-4 left-4 z-10">
-          <Badge className="bg-black/80 text-white">
-            {product.category}
-          </Badge>
+        {/* Badges superposés */}
+        <div className="absolute top-3 left-3 z-10 flex flex-col gap-1">
+          {product.isNew && (
+            <span className="bg-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
+              Nouveau
+            </span>
+          )}
+          {discount > 0 && (
+            <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+              -{discount}%
+            </span>
+          )}
+          {product.badge && !product.isNew && (
+            <span className="bg-amber-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
+              {product.badge}
+            </span>
+          )}
         </div>
+        {/* Photo réelle */}
+        {product.isRealPhoto && (
+          <div className="absolute top-3 right-3 z-10">
+            <span className="bg-green-600/90 text-white text-[10px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1">
+              <CheckCircle className="h-2.5 w-2.5" /> Photo réelle
+            </span>
+          </div>
+        )}
         {/* Bouton Achat Rapide (overlay) */}
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
           <Button
@@ -377,9 +620,21 @@ const ProductCard = memo(function ProductCard({
           ))}
           <span className="text-xs text-gray-500 ml-1">(5.0)</span>
         </div>
-        <p className="text-2xl font-bold text-[#B8860B] price-tag">
-          {formatPrice(product.price)}
-        </p>
+        {/* Prix + prix barré */}
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <p className="text-2xl font-bold text-[#B8860B] price-tag">
+            {formatPrice(product.price)}
+          </p>
+          {product.originalPrice && product.originalPrice > product.price && (
+            <p className="text-sm text-gray-400 line-through">
+              {formatPrice(product.originalPrice)}
+            </p>
+          )}
+        </div>
+        {/* Indicateur de stock */}
+        <div className={`inline-flex items-center gap-1 mt-2 text-xs font-medium px-2 py-0.5 rounded-full ${stockLabel.cls}`}>
+          {stockLabel.text}
+        </div>
       </CardContent>
 
       <CardFooter className="pt-0 gap-2">
@@ -427,21 +682,86 @@ export default function MarcheRoyalGuinee() {
   const [quickBuyProduct, setQuickBuyProduct] = useState<Product | null>(null);
   const [contactForm, setContactForm] = useState({ name: '', email: '', phone: '', message: '' });
   const [contactStatus, setContactStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+  const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
+  const [variantError, setVariantError] = useState('');
 
-  // Zustand cart store
+  // ---- Produits dynamiques depuis la DB ----
+  const [products, setProducts] = useState<Product[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
+  // Lazy rendering de la section vidéo (below the fold)
+  const [showVideos, setShowVideos] = useState(false);
+  const videoSectionRef = useCallback((node: HTMLElement | null) => {
+    if (!node) return;
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) { setShowVideos(true); obs.disconnect(); }
+    }, { rootMargin: '200px' });
+    obs.observe(node);
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/products')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped = data.map(dbToProduct);
+          setProducts(mapped);
+          mapped.forEach((p: Product) => preloadImage(p.image));
+        } else {
+          setProducts(FALLBACK_PRODUCTS);
+        }
+      })
+      .catch(() => setProducts(FALLBACK_PRODUCTS))
+      .finally(() => setProductsLoading(false));
+  }, []);
+
+  // Zustand stores
   const addToCart = useCartStore(state => state.addItem);
+  const cartItems = useCartStore(state => state.items);
+  const customer = useAuthStore(state => state.customer);
+
+  // ── Récupération panier abandonné ────────────────────────────────────────
+  // Si le visiteur a des articles dans le panier et quitte sans commander,
+  // affiche un toast de rappel à son retour.
+  useEffect(() => {
+    if (cartItems.length === 0) return;
+    const key = 'mrg_cart_reminder_shown';
+    const alreadyShown = sessionStorage.getItem(key);
+    if (alreadyShown) return;
+
+    const timer = setTimeout(() => {
+      sessionStorage.setItem(key, '1');
+      toast('🛒 Vous avez des articles dans votre panier !', {
+        description: 'Finalisez votre commande avant qu\'il soit trop tard.',
+        duration: 10000,
+        action: {
+          label: 'Commander',
+          onClick: () => { window.location.href = '/checkout'; },
+        },
+      });
+    }, 45000); // 45s après chargement de la page
+
+    return () => clearTimeout(timer);
+  }, [cartItems.length]);
+
+  // Catégories calculées depuis les produits chargés
+  const categories = useMemo(() => {
+    const cats = Array.from(new Set(products.map(p => p.category)));
+    return ["Tous", ...cats];
+  }, [products]);
 
   // Mémoriser les produits filtrés pour éviter les recalculs
   const filteredProducts = useMemo(() => {
     return activeCategory === "Tous"
       ? products
-      : products.filter(p => p.category === activeCategory);
-  }, [activeCategory]);
+      : products.filter((p: Product) => p.category === activeCategory);
+  }, [activeCategory, products]);
 
   // Callback optimisé pour sélectionner un produit
   const handleSelectProduct = useCallback((product: Product) => {
     setSelectedProduct(product);
     setActiveImageIndex(0);
+    setSelectedVariants({});
+    setVariantError('');
     setIsModalOpen(true);
     // Tracking : ViewContent
     fbPixelEvent.viewContent(product);
@@ -514,12 +834,9 @@ export default function MarcheRoyalGuinee() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Précharger toutes les images au montage du composant
+  // Précharger uniquement les images principales des fallback (pas la galerie complète)
   useEffect(() => {
-    products.forEach(product => {
-      preloadImage(product.image);
-      product.images.forEach(img => preloadImage(img));
-    });
+    FALLBACK_PRODUCTS.forEach(product => preloadImage(product.image));
   }, []);
 
   // Scroll to section - mémorisé
@@ -551,11 +868,14 @@ export default function MarcheRoyalGuinee() {
                 onClick={() => scrollToSection('hero')}
                 className="text-left"
               >
-                <div className="text-xl md:text-2xl font-bold">
-                  <span className="text-black">MARCHÉ</span>
-                  <span className="text-gold-gradient ml-1">ROYAL</span>
-                  <span className="text-gray-600 text-sm md:text-base ml-1">DE GUINÉE</span>
-                </div>
+                <Image
+                  src="/logo-royal.png"
+                  alt="Royal Marché de Guinée"
+                  width={120}
+                  height={60}
+                  className="h-12 w-auto object-contain"
+                  priority
+                />
                 <p className="text-xs text-gray-500 mt-0.5 hidden sm:block">
                   Vos montres et accessoires livrés à Conakry, en toute simplicité.
                 </p>
@@ -576,24 +896,42 @@ export default function MarcheRoyalGuinee() {
               >
                 Boutique
               </button>
+              <a
+                href="/produits"
+                className="text-gray-700 hover:text-[#B8860B] transition-colors font-medium"
+              >
+                Catalogue
+              </a>
               <button
                 onClick={() => scrollToSection('apropos')}
                 className="text-gray-700 hover:text-[#B8860B] transition-colors font-medium"
               >
                 À propos
               </button>
-              <button
-                onClick={() => scrollToSection('contact')}
+              <a
+                href="/contact"
                 className="text-gray-700 hover:text-[#B8860B] transition-colors font-medium"
               >
                 Contact
-              </button>
+              </a>
               <button
                 onClick={() => scrollToSection('faq')}
                 className="text-gray-700 hover:text-[#B8860B] transition-colors font-medium"
               >
                 FAQ
               </button>
+              <a
+                href="/suivi"
+                className="text-gray-700 hover:text-[#B8860B] transition-colors font-medium"
+              >
+                Suivi commande
+              </a>
+              <a
+                href={customer ? "/compte" : "/connexion"}
+                className="text-gray-700 hover:text-[#B8860B] transition-colors font-medium flex items-center gap-1"
+              >
+                {customer ? `👤 ${customer.name.split(' ')[0]}` : "Mon Compte"}
+              </a>
             </nav>
 
             {/* CTA Button + Cart */}
@@ -638,24 +976,42 @@ export default function MarcheRoyalGuinee() {
               >
                 Boutique
               </button>
+              <a
+                href="/produits"
+                className="text-gray-700 hover:text-[#B8860B] transition-colors font-medium text-left py-2"
+              >
+                Catalogue
+              </a>
               <button
                 onClick={() => scrollToSection('apropos')}
                 className="text-gray-700 hover:text-[#B8860B] transition-colors font-medium text-left py-2"
               >
                 À propos
               </button>
-              <button
-                onClick={() => scrollToSection('contact')}
+              <a
+                href="/contact"
                 className="text-gray-700 hover:text-[#B8860B] transition-colors font-medium text-left py-2"
               >
                 Contact
-              </button>
+              </a>
               <button
                 onClick={() => scrollToSection('faq')}
                 className="text-gray-700 hover:text-[#B8860B] transition-colors font-medium text-left py-2"
               >
                 FAQ
               </button>
+              <a
+                href="/suivi"
+                className="text-gray-700 hover:text-[#B8860B] transition-colors font-medium text-left py-2"
+              >
+                Suivi commande
+              </a>
+              <a
+                href={customer ? "/compte" : "/connexion"}
+                className="text-gray-700 hover:text-[#B8860B] transition-colors font-medium text-left py-2"
+              >
+                {customer ? `👤 ${customer.name.split(' ')[0]}` : "Mon Compte"}
+              </a>
               <Button
                 onClick={() => scrollToSection('produits')}
                 className="bg-gold-gradient text-white w-full"
@@ -751,9 +1107,18 @@ export default function MarcheRoyalGuinee() {
       </section>
 
       {/* ============================================
-          VIDEOS PRODUITS SHOWCASE
+          VIDEOS PRODUITS SHOWCASE (lazy — chargé quand visible)
           ============================================ */}
-      <section id="videos-produits" className="py-24 bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white relative overflow-hidden">
+      <section ref={videoSectionRef} id="videos-produits" className="py-24 bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white relative overflow-hidden">
+      {!showVideos ? (
+        /* Placeholder léger tant que la section n'est pas visible */
+        <div className="flex items-center justify-center py-16">
+          <div className="text-center text-gray-500">
+            <PlayCircle className="h-12 w-12 mx-auto mb-3 opacity-30" />
+            <p className="text-sm">Vidéos en cours de chargement…</p>
+          </div>
+        </div>
+      ) : (<>
         {/* Background Elements */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#D4A418]/10 rounded-full blur-3xl"></div>
@@ -782,12 +1147,13 @@ export default function MarcheRoyalGuinee() {
             <div className="group">
               <div className="relative rounded-2xl overflow-hidden bg-gray-800 shadow-2xl border border-[#D4A418]/20 hover:border-[#D4A418]/50 transition-all duration-500 hover:shadow-[#D4A418]/20 hover:shadow-2xl">
                 <div className="aspect-video overflow-hidden">
-                  <video 
+                  <video
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                    autoPlay 
-                    loop 
-                    muted 
+                    autoPlay
+                    loop
+                    muted
                     playsInline
+                    preload="none"
                     poster="/blanche.jpg"
                   >
                     <source src="https://aigc-files.bigmodel.cn/api/cogvideo/5796cab0-1f20-11f1-913a-f2c33534665f_0.mp4" type="video/mp4" />
@@ -805,14 +1171,14 @@ export default function MarcheRoyalGuinee() {
                 {/* Product Info */}
                 <div className="absolute bottom-0 left-0 right-0 p-6">
                   <Badge className="bg-[#D4A418] text-black mb-2 text-xs">Montres</Badge>
-                  <h3 className="text-xl font-bold text-white mb-1">Richard Mille – Édition Tendance</h3>
+                  <h3 className="text-xl font-bold text-white mb-1">Montre Style Royal RM – Édition Tendance</h3>
                   <p className="text-gray-300 text-sm mb-3">Style luxe et design audacieux</p>
                   <div className="flex items-center justify-between">
                     <span className="text-2xl font-bold text-[#D4A418]">350 000 GNF</span>
                     <Button 
                       size="sm"
                       onClick={() => {
-                        const product = products.find(p => p.id === 1);
+                        const product = products[0];
                         if (product) handleSelectProduct(product);
                       }}
                       className="bg-white/10 hover:bg-[#D4A418] text-white border border-white/20"
@@ -828,13 +1194,14 @@ export default function MarcheRoyalGuinee() {
             <div className="group">
               <div className="relative rounded-2xl overflow-hidden bg-gray-800 shadow-2xl border border-[#D4A418]/20 hover:border-[#D4A418]/50 transition-all duration-500 hover:shadow-[#D4A418]/20 hover:shadow-2xl">
                 <div className="aspect-video overflow-hidden">
-                  <video 
+                  <video
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                    autoPlay 
-                    loop 
-                    muted 
+                    autoPlay
+                    loop
+                    muted
                     playsInline
-                    poster="/precious duke.jpg"
+                    preload="none"
+                    poster="/precious-duke.jpg"
                   >
                     <source src="https://aigc-files.bigmodel.cn/api/cogvideo/6bf984ac-1f20-11f1-913a-f2c33534665f_0.mp4" type="video/mp4" />
                   </video>
@@ -851,14 +1218,14 @@ export default function MarcheRoyalGuinee() {
                 {/* Product Info */}
                 <div className="absolute bottom-0 left-0 right-0 p-6">
                   <Badge className="bg-[#D4A418] text-black mb-2 text-xs">Montres</Badge>
-                  <h3 className="text-xl font-bold text-white mb-1">Cartier – Élégance Classique</h3>
+                  <h3 className="text-xl font-bold text-white mb-1">Montre Élégance Gold – Style Classique</h3>
                   <p className="text-gray-300 text-sm mb-3">Le raffinement à l'état pur</p>
                   <div className="flex items-center justify-between">
                     <span className="text-2xl font-bold text-[#D4A418]">500 000 GNF</span>
                     <Button 
                       size="sm"
                       onClick={() => {
-                        const product = products.find(p => p.id === 2);
+                        const product = products[1];
                         if (product) handleSelectProduct(product);
                       }}
                       className="bg-white/10 hover:bg-[#D4A418] text-white border border-white/20"
@@ -874,13 +1241,14 @@ export default function MarcheRoyalGuinee() {
             <div className="group">
               <div className="relative rounded-2xl overflow-hidden bg-gray-800 shadow-2xl border border-[#D4A418]/20 hover:border-[#D4A418]/50 transition-all duration-500 hover:shadow-[#D4A418]/20 hover:shadow-2xl">
                 <div className="aspect-video overflow-hidden">
-                  <video 
+                  <video
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                    autoPlay 
-                    loop 
-                    muted 
+                    autoPlay
+                    loop
+                    muted
                     playsInline
-                    poster="/Luxury Big Window AG Glass Matte.jpeg"
+                    preload="none"
+                    poster="/luxury-glass-matte.jpeg"
                   >
                     <source src="https://aigc-files.bigmodel.cn/api/cogvideo/c62a175e-1f1e-11f1-a4db-02e07114cd92_0.mp4" type="video/mp4" />
                   </video>
@@ -904,7 +1272,7 @@ export default function MarcheRoyalGuinee() {
                     <Button 
                       size="sm"
                       onClick={() => {
-                        const product = products.find(p => p.id === 3);
+                        const product = products[2];
                         if (product) handleSelectProduct(product);
                       }}
                       className="bg-white/10 hover:bg-[#D4A418] text-white border border-white/20"
@@ -931,6 +1299,7 @@ export default function MarcheRoyalGuinee() {
             </Button>
           </div>
         </div>
+        </>)}
       </section>
 
       {/* ============================================
@@ -952,13 +1321,14 @@ export default function MarcheRoyalGuinee() {
 
           {/* Products Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {filteredProducts.map((product) => (
+            {filteredProducts.map((product, idx) => (
               <ProductCard
                 key={product.id}
                 product={product}
                 onSelect={handleSelectProduct}
                 onHover={handleProductHover}
                 onQuickBuy={handleQuickBuy}
+                priority={idx === 0}
               />
             ))}
           </div>
@@ -1032,6 +1402,27 @@ export default function MarcheRoyalGuinee() {
                 <p className="text-gray-600 text-sm">
                   {benefit.description}
                 </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================
+          SOCIAL PROOF COUNTER
+          ============================================ */}
+      <section className="py-10 bg-[#B8860B]">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center text-white">
+            {[
+              { value: '200+', label: 'Clients satisfaits' },
+              { value: '500+', label: 'Commandes livrées' },
+              { value: '48h', label: 'Livraison max Conakry' },
+              { value: '5★', label: 'Note moyenne clients' },
+            ].map((stat) => (
+              <div key={stat.label} className="flex flex-col items-center">
+                <span className="text-3xl md:text-4xl font-bold">{stat.value}</span>
+                <span className="text-sm md:text-base text-white/80 mt-1">{stat.label}</span>
               </div>
             ))}
           </div>
@@ -1115,6 +1506,55 @@ export default function MarcheRoyalGuinee() {
       </section>
 
       {/* ============================================
+          NOUVEAUTÉS SECTION
+          ============================================ */}
+      {products.some(p => p.isNew) && (
+        <section className="py-14 bg-gradient-to-r from-purple-50 to-indigo-50">
+          <div className="container mx-auto px-4">
+            <div className="flex items-center gap-3 mb-8">
+              <span className="bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">Nouveau</span>
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Nouveautés</h2>
+              <p className="text-gray-500 text-sm hidden sm:block">— Venez de rejoindre notre collection</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {products.filter(p => p.isNew).map((product) => {
+                const disc = product.originalPrice && product.originalPrice > product.price
+                  ? Math.round((1 - product.price / product.originalPrice) * 100) : 0;
+                return (
+                  <div
+                    key={`new-${product.id}`}
+                    className="bg-white rounded-2xl shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition-shadow flex gap-4 p-4"
+                    onClick={() => handleSelectProduct(product)}
+                  >
+                    <div className="relative w-24 h-24 shrink-0 rounded-xl overflow-hidden bg-gray-100">
+                      <Image src={product.image} alt={product.name} fill className="object-cover" sizes="96px" />
+                      <span className="absolute top-1 left-1 bg-purple-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">NEW</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-purple-600 font-medium mb-0.5">{product.category}</p>
+                      <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 mb-1">{product.name}</h3>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-base font-bold text-[#B8860B]">{formatPrice(product.price)}</span>
+                        {disc > 0 && product.originalPrice && (
+                          <span className="text-xs text-gray-400 line-through">{formatPrice(product.originalPrice)}</span>
+                        )}
+                      </div>
+                      <button
+                        className="mt-2 text-xs bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded-full font-medium transition-colors"
+                        onClick={(e) => { e.stopPropagation(); handleSelectProduct(product); }}
+                      >
+                        Découvrir →
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ============================================
           BOUTIQUE SECTION (Full Catalog)
           ============================================ */}
       <section id="boutique" className="py-20 bg-white">
@@ -1150,95 +1590,123 @@ export default function MarcheRoyalGuinee() {
 
           {/* Products Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {filteredProducts.map((product) => (
-              <Card
-                key={product.id}
-                className="premium-card border-0 shadow-lg overflow-hidden bg-white cursor-pointer group"
-                onClick={() => handleSelectProduct(product)}
-                role="article"
-                aria-label={`${product.name} - ${formatPrice(product.price)}`}
-              >
-                {/* Product Image avec next/image optimisé */}
-                <div className="product-image-container aspect-square bg-gradient-to-br from-gray-100 to-gray-50 relative">
-                  <Image
-                    src={product.image}
-                    alt={`${product.name} - ${product.category} disponible chez MARCHÉ ROYAL DE GUINÉE à Conakry`}
-                    fill
-                    sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
-                    loading="lazy"
-                  />
-                  {/* Category Badge */}
-                  <div className="absolute top-4 left-4">
-                    <Badge className="bg-black/80 text-white">
-                      {product.category}
-                    </Badge>
+            {productsLoading
+              ? Array.from({ length: 3 }).map((_, i) => <ProductSkeleton key={i} />)
+              : filteredProducts.map((product, boutIdx) => {
+              const disc = product.originalPrice && product.originalPrice > product.price
+                ? Math.round((1 - product.price / product.originalPrice) * 100) : 0;
+              const stk = product.inStock === false
+                ? { text: 'Rupture de stock', cls: 'bg-red-100 text-red-700' }
+                : product.stockQuantity !== undefined && product.stockQuantity <= 5
+                ? { text: `Plus que ${product.stockQuantity} en stock`, cls: 'bg-orange-100 text-orange-700' }
+                : product.stockQuantity !== undefined && product.stockQuantity <= 15
+                ? { text: 'Stock faible', cls: 'bg-yellow-100 text-yellow-700' }
+                : { text: 'En stock', cls: 'bg-green-100 text-green-700' };
+              return (
+                <Card
+                  key={product.id}
+                  className="premium-card border-0 shadow-lg overflow-hidden bg-white cursor-pointer group"
+                  onClick={() => handleSelectProduct(product)}
+                  role="article"
+                  aria-label={`${product.name} - ${formatPrice(product.price)}`}
+                >
+                  {/* Product Image avec next/image optimisé */}
+                  <div className="product-image-container aspect-square bg-gradient-to-br from-gray-100 to-gray-50 relative">
+                    <Image
+                      src={product.image}
+                      alt={`${product.name} - ${product.category} disponible chez MARCHÉ ROYAL DE GUINÉE à Conakry`}
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      loading={boutIdx === 0 ? 'eager' : 'lazy'}
+                      priority={boutIdx === 0}
+                    />
+                    {/* Badges */}
+                    <div className="absolute top-3 left-3 flex flex-col gap-1">
+                      {product.isNew && (
+                        <span className="bg-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Nouveau</span>
+                      )}
+                      {disc > 0 && (
+                        <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">-{disc}%</span>
+                      )}
+                      {product.badge && !product.isNew && (
+                        <span className="bg-amber-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">{product.badge}</span>
+                      )}
+                    </div>
+                    {product.isRealPhoto && (
+                      <div className="absolute top-3 right-3">
+                        <span className="bg-green-600/90 text-white text-[10px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <CheckCircle className="h-2.5 w-2.5" /> Photo réelle
+                        </span>
+                      </div>
+                    )}
                   </div>
-                </div>
 
-                {/* Product Info */}
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg font-semibold text-gray-900 line-clamp-2">
-                    {product.name}
-                  </CardTitle>
-                </CardHeader>
+                  {/* Product Info */}
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg font-semibold text-gray-900 line-clamp-2">
+                      {product.name}
+                    </CardTitle>
+                  </CardHeader>
 
-                <CardContent className="pb-4">
-                  <p className="text-gray-600 text-sm line-clamp-2 mb-3">
-                    {product.shortDescription}
-                  </p>
-                  {/* Notation étoilée */}
-                  <div className="flex items-center gap-1 mb-2" aria-label="Note : 5 sur 5 étoiles">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="h-4 w-4 fill-[#D4A418] text-[#D4A418]" />
-                    ))}
-                    <span className="text-xs text-gray-500 ml-1">(5.0)</span>
-                  </div>
-                  <p className="text-2xl font-bold text-[#B8860B] price-tag">
-                    {formatPrice(product.price)}
-                  </p>
-                </CardContent>
+                  <CardContent className="pb-4">
+                    <p className="text-gray-600 text-sm line-clamp-2 mb-3">
+                      {product.shortDescription}
+                    </p>
+                    {/* Notation étoilée */}
+                    <div className="flex items-center gap-1 mb-2" aria-label="Note : 5 sur 5 étoiles">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="h-4 w-4 fill-[#D4A418] text-[#D4A418]" />
+                      ))}
+                      <span className="text-xs text-gray-500 ml-1">(5.0)</span>
+                    </div>
+                    {/* Prix + barré */}
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <p className="text-2xl font-bold text-[#B8860B] price-tag">{formatPrice(product.price)}</p>
+                      {product.originalPrice && product.originalPrice > product.price && (
+                        <p className="text-sm text-gray-400 line-through">{formatPrice(product.originalPrice)}</p>
+                      )}
+                    </div>
+                    {/* Stock */}
+                    <span className={`inline-block mt-2 text-xs font-medium px-2 py-0.5 rounded-full ${stk.cls}`}>{stk.text}</span>
+                  </CardContent>
 
-                <CardFooter className="pt-0 gap-2 flex-wrap">
-                  <Button
-                    className="flex-1 bg-gold-gradient text-white hover:opacity-90"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleSelectProduct(product);
-                    }}
-                  >
-                    Voir le produit
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="border-[#B8860B] text-[#B8860B] hover:bg-[#FFF9E6]"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleAddToCart(product);
-                    }}
-                    aria-label={`Ajouter ${product.name} au panier`}
-                  >
-                    <ShoppingCart className="h-5 w-5" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="border-green-500 text-green-500 hover:bg-green-50"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      fbPixelEvent.purchase(product);
-                      gaEvent.whatsappClick(product.name);
-                      window.open(generateWhatsAppLink(product.name), '_blank');
-                    }}
-                    aria-label={`Commander ${product.name} sur WhatsApp`}
-                  >
-                    <MessageCircle className="h-5 w-5" />
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
+                  <CardFooter className="pt-0 gap-2 flex-wrap">
+                    <Button
+                      className="flex-1 bg-gold-gradient text-white hover:opacity-90"
+                      onClick={(e) => { e.stopPropagation(); handleSelectProduct(product); }}
+                    >
+                      Voir le produit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="border-[#B8860B] text-[#B8860B] hover:bg-[#FFF9E6]"
+                      onClick={(e) => { e.stopPropagation(); handleAddToCart(product); }}
+                      aria-label={`Ajouter ${product.name} au panier`}
+                    >
+                      <ShoppingCart className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="border-green-500 text-green-500 hover:bg-green-50"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        fbPixelEvent.purchase(product);
+                        gaEvent.whatsappClick(product.name);
+                        window.open(generateWhatsAppLink(product.name), '_blank');
+                      }}
+                      aria-label={`Commander ${product.name} sur WhatsApp`}
+                    >
+                      <MessageCircle className="h-5 w-5" />
+                    </Button>
+                  </CardFooter>
+                </Card>
+              );
+            })}
           </div>
+
         </div>
       </section>
 
@@ -1253,7 +1721,7 @@ export default function MarcheRoyalGuinee() {
               <div className="relative">
                 <div className="aspect-square rounded-2xl overflow-hidden shadow-2xl">
                   <Image
-                    src="/7437519256192966656.png"
+                    src="/7437519256192966656.jpg"
                     alt="Logo et vitrine de MARCHÉ ROYAL DE GUINÉE - Boutique de montres et accessoires premium à Lambanyi, Conakry"
                     fill
                     sizes="(max-width: 768px) 100vw, 50vw"
@@ -1398,7 +1866,7 @@ export default function MarcheRoyalGuinee() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-900">Téléphone</h3>
-                      <p className="text-[#B8860B] font-medium">+224 623 45 76 89</p>
+                      <p className="text-[#B8860B] font-medium">+224 623 457 689</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -1544,6 +2012,14 @@ export default function MarcheRoyalGuinee() {
                   </button>
                 </li>
                 <li>
+                  <a
+                    href="/produits"
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    Catalogue complet
+                  </a>
+                </li>
+                <li>
                   <button
                     onClick={() => scrollToSection('apropos')}
                     className="text-gray-400 hover:text-white transition-colors"
@@ -1552,12 +2028,12 @@ export default function MarcheRoyalGuinee() {
                   </button>
                 </li>
                 <li>
-                  <button
-                    onClick={() => scrollToSection('contact')}
+                  <a
+                    href="/contact"
                     className="text-gray-400 hover:text-white transition-colors"
                   >
                     Contact
-                  </button>
+                  </a>
                 </li>
                 <li>
                   <button
@@ -1566,6 +2042,22 @@ export default function MarcheRoyalGuinee() {
                   >
                     FAQ
                   </button>
+                </li>
+                <li>
+                  <a
+                    href="/suivi"
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    Suivi commande
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href={customer ? "/compte" : "/connexion"}
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    Mon Compte
+                  </a>
                 </li>
               </ul>
             </div>
@@ -1576,7 +2068,7 @@ export default function MarcheRoyalGuinee() {
               <ul className="space-y-2 text-gray-400">
                 <li className="flex items-center gap-2">
                   <Phone className="h-4 w-4 text-[#D4A418]" />
-                  +224 623 45 76 89
+                  <a href="tel:+224623457689" className="hover:text-white transition-colors">+224 623 457 689</a>
                 </li>
                 <li className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-[#D4A418]" />
@@ -1586,11 +2078,42 @@ export default function MarcheRoyalGuinee() {
                   <Clock className="h-4 w-4 text-[#D4A418]" />
                   Lun-Sam : 9h-19h
                 </li>
+                <li className="flex items-center gap-2 mt-2">
+                  <MessageCircle className="h-4 w-4 text-[#D4A418]" />
+                  <a href="/contact" className="hover:text-white transition-colors">Formulaire de contact</a>
+                </li>
               </ul>
             </div>
           </div>
 
           <Separator className="bg-gray-800 mb-8" />
+
+          {/* Badges de confiance */}
+          <div className="flex flex-wrap justify-center gap-4 mb-8">
+            <div className="flex items-center gap-2 bg-gray-800 rounded-full px-4 py-2 text-xs text-gray-300">
+              <span>🔒</span> Paiement sécurisé
+            </div>
+            <div className="flex items-center gap-2 bg-gray-800 rounded-full px-4 py-2 text-xs text-gray-300">
+              <span>🚚</span> Livraison rapide Conakry
+            </div>
+            <div className="flex items-center gap-2 bg-gray-800 rounded-full px-4 py-2 text-xs text-gray-300">
+              <span>✅</span> Qualité garantie 30 jours
+            </div>
+            <div className="flex items-center gap-2 bg-gray-800 rounded-full px-4 py-2 text-xs text-gray-300">
+              <span>💵</span> Paiement à la livraison
+            </div>
+          </div>
+
+          {/* Liens légaux */}
+          <div className="flex flex-wrap justify-center gap-4 mb-6 text-xs text-gray-600">
+            <a href="/cgv" className="hover:text-gray-400 transition-colors">Conditions Générales de Vente</a>
+            <span className="text-gray-700">·</span>
+            <a href="/mentions-legales" className="hover:text-gray-400 transition-colors">Mentions Légales</a>
+            <span className="text-gray-700">·</span>
+            <a href="/confidentialite" className="hover:text-gray-400 transition-colors">Politique de Confidentialité</a>
+            <span className="text-gray-700">·</span>
+            <a href="/contact" className="hover:text-gray-400 transition-colors">Contact</a>
+          </div>
 
           {/* Copyright */}
           <div className="text-center text-gray-500 text-sm">
@@ -1687,7 +2210,7 @@ export default function MarcheRoyalGuinee() {
                   </div>
 
                   {/* VIDEO BLOC - AG GLASS UNIQUEMENT */}
-                  {selectedProduct.id === 3 && (
+                  {selectedProduct.category === 'Accessoires Téléphone' && (
                     <div className="product-video-block bg-gray-50 rounded-xl p-4">
                       <div className="flex items-center gap-2 mb-3">
                         <PlayCircle className="h-5 w-5 text-[#B8860B]" />
@@ -1703,7 +2226,7 @@ export default function MarcheRoyalGuinee() {
                       <div className="relative aspect-video rounded-lg overflow-hidden bg-black shadow-lg group">
                         <video
                           src="https://aigc-files.bigmodel.cn/api/cogvideo/c62a175e-1f1e-11f1-a4db-02e07114cd92_0.mp4"
-                          poster="/Luxury Big Window AG Glass Matte.jpeg"
+                          poster="/luxury-glass-matte.jpeg"
                           autoPlay
                           loop
                           muted
@@ -1756,20 +2279,85 @@ export default function MarcheRoyalGuinee() {
                     <h4 className="font-semibold text-gray-900">Livraison & Paiement</h4>
                     <div className="flex items-center gap-2 text-sm text-gray-700">
                       <Truck className="h-4 w-4 text-[#B8860B]" />
-                      Livraison disponible à Conakry et environs
+                      Livraison 24–48h à Conakry (3–5j en province)
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-700">
                       <Shield className="h-4 w-4 text-[#B8860B]" />
-                      Paiement à la livraison possible
+                      Paiement à la livraison — Orange Money — MTN Money
                     </div>
                   </div>
+
+                  {/* Politique de retour */}
+                  <div className="border border-green-200 bg-green-50 rounded-xl p-4 space-y-1.5">
+                    <h4 className="font-semibold text-green-900 flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      Politique d&apos;échange — 7 jours
+                    </h4>
+                    <p className="text-sm text-green-800">
+                      Si le produit ne correspond pas à votre commande ou présente un défaut, vous avez <strong>7 jours</strong> pour nous le signaler via WhatsApp. Échange immédiat, sans tracas, pour les clients de Conakry.
+                    </p>
+                    <p className="text-xs text-green-700">
+                      Produit non utilisé · emballage d&apos;origine requis · garantie fabrication 30 jours
+                    </p>
+                  </div>
+
+                  {/* Sélecteurs de variantes */}
+                  {selectedProduct.variants && selectedProduct.variants.length > 0 && (
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-gray-900 text-sm">Choisir vos options</h4>
+                      {selectedProduct.variants.map((variant) => (
+                        <div key={variant.name}>
+                          <label className="block text-sm text-gray-600 mb-1.5">
+                            {variant.name} <span className="text-red-500">*</span>
+                          </label>
+                          <div className="flex flex-wrap gap-2">
+                            {variant.options.map((opt) => (
+                              <button
+                                key={opt.label}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedVariants(prev => ({ ...prev, [variant.name]: opt.label }));
+                                  setVariantError('');
+                                }}
+                                className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
+                                  selectedVariants[variant.name] === opt.label
+                                    ? 'border-[#B8860B] bg-[#FFF9E6] text-[#B8860B]'
+                                    : 'border-gray-200 text-gray-700 hover:border-[#B8860B]'
+                                }`}
+                              >
+                                {opt.label}
+                                {opt.extraPrice > 0 && (
+                                  <span className="ml-1 text-xs text-gray-400">+{new Intl.NumberFormat('fr-GN').format(opt.extraPrice)}</span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                      {variantError && (
+                        <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg border border-red-200">
+                          {variantError}
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   {/* Boutons d'action */}
                   <div className="space-y-3">
                     {/* Ajouter au panier */}
                     <Button
                       className="w-full bg-[#B8860B] hover:bg-[#9A7209] text-white text-lg py-6"
-                      onClick={() => handleAddToCart(selectedProduct)}
+                      onClick={() => {
+                        // Validation variantes obligatoires
+                        if (selectedProduct.variants && selectedProduct.variants.length > 0) {
+                          const missing = selectedProduct.variants.find(v => !selectedVariants[v.name]);
+                          if (missing) {
+                            setVariantError(`Veuillez choisir : ${missing.name}`);
+                            return;
+                          }
+                        }
+                        handleAddToCart(selectedProduct);
+                      }}
                     >
                       <ShoppingCart className="mr-2 h-5 w-5" />
                       Ajouter au panier
@@ -1789,6 +2377,46 @@ export default function MarcheRoyalGuinee() {
                       Commander sur WhatsApp
                     </Button>
                   </div>
+
+                  {/* ── Upsell : Vous aimerez aussi ─────────────────── */}
+                  {(() => {
+                    const others = products.filter(p => p.id !== selectedProduct.id).slice(0, 2);
+                    if (others.length === 0) return null;
+                    return (
+                      <div className="border-t pt-5">
+                        <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                          <Zap className="h-4 w-4 text-[#B8860B]" />
+                          Vous aimerez aussi
+                        </h4>
+                        <div className="grid grid-cols-2 gap-3">
+                          {others.map(p => (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedProduct(p);
+                                setActiveImageIndex(0);
+                                setSelectedVariants({});
+                                setVariantError('');
+                              }}
+                              className="flex items-center gap-3 p-2 rounded-xl border border-gray-100 hover:border-[#D4A418] hover:bg-[#FFF9E6] transition-all text-left group"
+                            >
+                              <div className="w-14 h-14 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                                <img src={p.image} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs font-semibold text-gray-800 line-clamp-2 leading-tight">{p.name}</p>
+                                <p className="text-sm font-bold text-[#B8860B] mt-0.5">{formatPrice(p.price)}</p>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Section avis clients avec dates */}
+                  <ReviewsSection productId={selectedProduct.id} />
                 </div>
               </div>
             </>
@@ -1883,6 +2511,101 @@ export default function MarcheRoyalGuinee() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* ============================================
+          FOOTER
+          ============================================ */}
+      {/* Newsletter section */}
+      <section className="bg-gradient-to-r from-[#1a1400] via-[#0a0a0a] to-[#1a1400] border-t border-[#D4A418]/20 py-14">
+        <div className="max-w-2xl mx-auto px-4 text-center">
+          <div className="inline-flex items-center gap-2 bg-[#D4A418]/10 border border-[#D4A418]/30 text-[#D4A418] text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
+            ✉️ Newsletter exclusive
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-2">Restez informé des nouveautés</h2>
+          <p className="text-white/60 text-sm mb-6">
+            Offres exclusives, nouvelles collections et promotions réservées à nos abonnés.
+          </p>
+          <NewsletterForm variant="dark" />
+        </div>
+      </section>
+
+      <footer className="bg-gray-900 text-gray-300 mt-0">
+        <div className="max-w-7xl mx-auto px-4 py-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+            {/* Colonne 1 : Marque */}
+            <div>
+              {/* Logo */}
+              <div className="mb-4">
+                <Image
+                  src="/logo-royal.png"
+                  alt="Royal Marché de Guinée"
+                  width={160}
+                  height={80}
+                  className="h-16 w-auto object-contain brightness-0 invert"
+                />
+              </div>
+              <p className="text-sm text-gray-400 leading-relaxed mb-4">
+                Montres, accessoires et produits premium. Authentiques, élégants, livrés chez vous.
+              </p>
+              <a
+                href="https://wa.me/224623457689"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded-full transition-colors"
+              >
+                <MessageCircle className="w-4 h-4" />
+                Nous contacter
+              </a>
+            </div>
+
+            {/* Colonne 2 : Navigation */}
+            <div>
+              <h4 className="text-white font-semibold mb-3">Navigation</h4>
+              <ul className="space-y-2 text-sm">
+                {[
+                  { href: '/', label: 'Accueil' },
+                  { href: '/produits', label: 'Catalogue' },
+                  { href: '/suivi', label: 'Suivi de commande' },
+                  { href: '/compte', label: 'Mon compte' },
+                  { href: '/connexion', label: 'Connexion' },
+                ].map((link) => (
+                  <li key={link.href}>
+                    <a href={link.href} className="hover:text-[#B8860B] transition-colors">
+                      {link.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Colonne 3 : Légal & Contact */}
+            <div>
+              <h4 className="text-white font-semibold mb-3">Informations</h4>
+              <ul className="space-y-2 text-sm mb-4">
+                {[
+                  { href: '/cgv', label: 'Conditions générales de vente' },
+                  { href: '/confidentialite', label: 'Politique de confidentialité' },
+                  { href: '/mentions-legales', label: 'Mentions légales' },
+                ].map((link) => (
+                  <li key={link.href}>
+                    <a href={link.href} className="hover:text-[#B8860B] transition-colors">
+                      {link.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-gray-500">
+                📍 Lambanyi, Conakry – Guinée<br />
+                📞 +224 623 457 689
+              </p>
+            </div>
+          </div>
+
+          <div className="border-t border-gray-800 mt-10 pt-6 text-center text-xs text-gray-500">
+            © {new Date().getFullYear()} Marché Royal de Guinée. Tous droits réservés.
+          </div>
+        </div>
+      </footer>
 
       {/* ============================================
           CART PANEL (Panneau du panier)

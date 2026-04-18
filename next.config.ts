@@ -6,19 +6,39 @@ const nextConfig: NextConfig = {
   },
   reactStrictMode: true,
 
+  // Prisma : évite d'embarquer le client dans le bundle edge
+  serverExternalPackages: ['@prisma/client', 'bcrypt'],
+
+  // Réduit le bundle JS en n'important que les icônes utilisées
+  experimental: {
+    optimizePackageImports: [
+      'lucide-react',
+      '@radix-ui/react-accordion',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-select',
+      'sonner',
+    ],
+  },
+
   // Optimisation des images avec next/image
   images: {
     formats: ['image/webp', 'image/avif'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     minimumCacheTTL: 60 * 60 * 24 * 30, // 30 jours de cache
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '*.public.blob.vercel-storage.com',
+      },
+    ],
   },
 
   // Compression et optimisation
   compress: true,
 
   // En-têtes de sécurité
-  async headers() {
+  headers: async () => {
     return [
       {
         source: '/(.*)',
@@ -48,11 +68,12 @@ const nextConfig: NextConfig = {
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://connect.facebook.net https://www.googletagmanager.com https://www.google-analytics.com",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              // Fonts auto-hébergées via next/font — pas besoin de fonts.googleapis.com
+              "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https: http:",
-              "font-src 'self' https://fonts.gstatic.com",
-              "connect-src 'self' https://www.google-analytics.com https://www.facebook.com https://aigc-files.bigmodel.cn",
-              "media-src 'self' https://aigc-files.bigmodel.cn",
+              "font-src 'self'",
+              "connect-src 'self' https://www.google-analytics.com https://www.facebook.com https://aigc-files.bigmodel.cn https://vercel.com https://*.public.blob.vercel-storage.com",
+              "media-src 'self' https://aigc-files.bigmodel.cn https://*.public.blob.vercel-storage.com",
               "frame-src 'self' https://www.facebook.com",
             ].join('; '),
           },
@@ -71,5 +92,6 @@ const nextConfig: NextConfig = {
     ];
   },
 };
+
 
 export default nextConfig;

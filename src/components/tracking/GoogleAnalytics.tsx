@@ -41,7 +41,7 @@ export default function GoogleAnalytics() {
 
 // Fonctions utilitaires pour les événements GA4
 export const gaEvent = {
-  viewItem: (product: { name: string; id: number; price: number; category: string }) => {
+  viewItem: (product: { name: string; id: string; price: number; category: string }) => {
     if (typeof window !== "undefined" && (window as any).gtag) {
       (window as any).gtag("event", "view_item", {
         currency: "GNF",
@@ -58,7 +58,7 @@ export const gaEvent = {
     }
   },
 
-  addToCart: (product: { name: string; id: number; price: number; category: string }) => {
+  addToCart: (product: { name: string; id: string; price: number; category: string }) => {
     if (typeof window !== "undefined" && (window as any).gtag) {
       (window as any).gtag("event", "add_to_cart", {
         currency: "GNF",
@@ -76,7 +76,7 @@ export const gaEvent = {
   },
 
   // Événement personnalisé pour les commandes WhatsApp
-  purchaseWhatsApp: (product: { name: string; id: number; price: number; category: string }) => {
+  purchaseWhatsApp: (product: { name: string; id: string; price: number; category: string }) => {
     if (typeof window !== "undefined" && (window as any).gtag) {
       (window as any).gtag("event", "purchase", {
         currency: "GNF",

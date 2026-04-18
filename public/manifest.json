@@ -1,0 +1,46 @@
+{
+  "name": "MARCHÉ ROYAL DE GUINÉE",
+  "short_name": "Marché Royal",
+  "description": "Montres & accessoires premium à Conakry. Livraison rapide, paiement à la livraison.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#B8860B",
+  "orientation": "portrait-primary",
+  "lang": "fr",
+  "categories": ["shopping", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/og-image.jpg",
+      "sizes": "1200x630",
+      "type": "image/jpeg",
+      "form_factor": "narrow"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Boutique",
+      "url": "/#boutique",
+      "description": "Voir tous les produits"
+    },
+    {
+      "name": "Suivi commande",
+      "url": "/suivi",
+      "description": "Suivre ma commande"
+    }
+  ]
+}

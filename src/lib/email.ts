@@ -7,7 +7,7 @@ function getResend(): Resend {
 }
 
 const STORE_NAME = 'MARCHÉ ROYAL DE GUINÉE'
-const STORE_PHONE = '+254 712 284 781'
+const STORE_PHONE = '+224 623 457 689'
 const STORE_ADDRESS = 'Lambanyi, Conakry – Guinée'
 const STORE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://marcheroyalguinee.com'
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'commandes@marcheroyalguinee.com'
@@ -170,7 +170,7 @@ function buildOrderEmailHtml(data: OrderEmailData): string {
         <tr>
           <td style="padding:0 40px 32px;text-align:center;">
             <p style="font-size:14px;color:#555;margin:0 0 12px;">Besoin d'aide ou questions sur votre commande ?</p>
-            <a href="https://wa.me/254712284781?text=${encodeURIComponent(`Bonjour, je voudrais des informations sur ma commande #${shortId}`)}"
+            <a href="https://wa.me/224623457689?text=${encodeURIComponent(`Bonjour, je voudrais des informations sur ma commande #${shortId}`)}"
                style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:700;">
               💬 Nous contacter sur WhatsApp
             </a>

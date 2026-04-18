@@ -2,32 +2,36 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getAdmin } from '@/lib/auth'
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const admin = await getAdmin()
     if (!admin) {
-      return NextResponse.json(
-        { error: 'Non authentifié' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
-    const [totalProducts, totalOrders, pendingOrders, deliveredOrders, recentOrders] = await Promise.all([
+    const [totalProducts, totalOrders, pendingOrders, revenueOrders, recentOrders] = await Promise.all([
       db.product.count(),
       db.order.count(),
-      db.order.count({
-        where: { status: 'pending' },
-      }),
+      db.order.count({ where: { status: 'pending' } }),
       db.order.findMany({
-        where: { status: 'delivered' },
+        where: { status: { in: ['confirmed', 'shipped', 'delivered'] } },
+        select: { totalAmount: true },
       }),
       db.order.findMany({
         orderBy: { createdAt: 'desc' },
         take: 5,
+        select: {
+          id: true,
+          customerName: true,
+          customerPhone: true,
+          totalAmount: true,
+          status: true,
+          createdAt: true,
+        },
       }),
     ])
 
-    const totalRevenue = deliveredOrders.reduce((sum, order) => sum + order.totalAmount, 0)
+    const totalRevenue = revenueOrders.reduce((sum, o) => sum + o.totalAmount, 0)
 
     return NextResponse.json({
       totalProducts,
@@ -37,7 +41,9 @@ export async function GET(request: NextRequest) {
       recentOrders: recentOrders.map((order) => ({
         id: order.id,
         customerName: order.customerName,
-        totalAmount: order.totalAmount,
+        customerPhone: order.customerPhone,
+        total: order.totalAmount,        // nom cohérent avec le dashboard
+        totalAmount: order.totalAmount,  // alias pour rétrocompat
         status: order.status,
         createdAt: order.createdAt,
       })),

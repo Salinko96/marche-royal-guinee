@@ -54,7 +54,7 @@ export default function FacebookPixel() {
 
 // Fonctions utilitaires pour déclencher les événements Facebook Pixel
 export const fbPixelEvent = {
-  viewContent: (product: { name: string; id: number; price: number }) => {
+  viewContent: (product: { name: string; id: string; price: number }) => {
     if (typeof window !== "undefined" && (window as any).fbq) {
       (window as any).fbq("track", "ViewContent", {
         content_name: product.name,
@@ -66,7 +66,7 @@ export const fbPixelEvent = {
     }
   },
 
-  addToCart: (product: { name: string; id: number; price: number }) => {
+  addToCart: (product: { name: string; id: string; price: number }) => {
     if (typeof window !== "undefined" && (window as any).fbq) {
       (window as any).fbq("track", "AddToCart", {
         content_name: product.name,
@@ -78,7 +78,7 @@ export const fbPixelEvent = {
     }
   },
 
-  purchase: (product: { name: string; id: number; price: number }) => {
+  purchase: (product: { name: string; id: string; price: number }) => {
     if (typeof window !== "undefined" && (window as any).fbq) {
       (window as any).fbq("track", "Purchase", {
         content_name: product.name,
@@ -90,7 +90,7 @@ export const fbPixelEvent = {
     }
   },
 
-  initiateCheckout: (products: { name: string; id: number; price: number }[]) => {
+  initiateCheckout: (products: { name: string; id: string; price: number }[]) => {
     if (typeof window !== "undefined" && (window as any).fbq) {
       const totalValue = products.reduce((sum, p) => sum + p.price, 0);
       (window as any).fbq("track", "InitiateCheckout", {

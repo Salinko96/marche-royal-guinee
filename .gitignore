@@ -38,3 +38,4 @@ db/*.db
 next-env.d.ts
 dev.log
 .vercel
+.env*.local

@@ -4,11 +4,12 @@ import { getAdmin } from '@/lib/auth'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const product = await db.product.findUnique({
-      where: { id: params.id },
+      where: { id },
     })
 
     if (!product) {
@@ -30,7 +31,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const admin = await getAdmin()
@@ -41,6 +42,7 @@ export async function PUT(
       )
     }
 
+    const { id } = await params
     const body = await request.json()
     const {
       name,
@@ -56,6 +58,13 @@ export async function PUT(
       compatibility,
       inStock,
       featured,
+      stockQuantity,
+      variants,
+      tags,
+      originalPrice,
+      isRealPhoto,
+      badge,
+      isNew,
     } = body
 
     const updateData: any = {}
@@ -72,9 +81,16 @@ export async function PUT(
     if (compatibility !== undefined) updateData.compatibility = compatibility ? JSON.stringify(compatibility) : null
     if (inStock !== undefined) updateData.inStock = inStock
     if (featured !== undefined) updateData.featured = featured
+    if (stockQuantity !== undefined) updateData.stockQuantity = stockQuantity
+    if (variants !== undefined) updateData.variants = JSON.stringify(variants)
+    if (tags !== undefined) updateData.tags = JSON.stringify(tags)
+    if (originalPrice !== undefined) updateData.originalPrice = originalPrice !== null ? originalPrice : null
+    if (isRealPhoto !== undefined) updateData.isRealPhoto = isRealPhoto
+    if (badge !== undefined) updateData.badge = badge || null
+    if (isNew !== undefined) updateData.isNew = isNew
 
     const product = await db.product.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
     })
 
@@ -89,8 +105,8 @@ export async function PUT(
 }
 
 export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const admin = await getAdmin()
@@ -101,8 +117,9 @@ export async function DELETE(
       )
     }
 
+    const { id } = await params
     await db.product.delete({
-      where: { id: params.id },
+      where: { id },
     })
 
     return NextResponse.json({ success: true })

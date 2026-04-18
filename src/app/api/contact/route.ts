@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
 
 /**
  * API de contact avec rate-limiting intégré
@@ -119,15 +120,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Ici, ajoutez votre logique d'envoi (email, base de données, webhook, etc.)
-    // Exemple : envoyer un email via un service comme Resend, SendGrid, etc.
-    console.log("Nouveau message de contact :", {
-      name,
-      email,
-      phone: phone || "Non fourni",
-      message,
-      ip,
-      timestamp: new Date().toISOString(),
+    // Sauvegarder en base de données
+    await db.contactMessage.create({
+      data: {
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone?.trim() || null,
+        message: message.trim(),
+      },
     });
 
     return NextResponse.json(

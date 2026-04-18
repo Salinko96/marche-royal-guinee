@@ -59,6 +59,13 @@ export async function POST(request: NextRequest) {
       compatibility,
       inStock,
       featured,
+      stockQuantity,
+      variants,
+      tags,
+      originalPrice,
+      isRealPhoto,
+      badge,
+      isNew,
     } = body
 
     if (!name || !slug || !category || !price) {
@@ -83,6 +90,13 @@ export async function POST(request: NextRequest) {
         compatibility: compatibility ? JSON.stringify(compatibility) : null,
         inStock: inStock !== undefined ? inStock : true,
         featured: featured !== undefined ? featured : false,
+        stockQuantity: stockQuantity !== undefined ? stockQuantity : 0,
+        variants: variants ? JSON.stringify(variants) : null,
+        tags: tags ? JSON.stringify(tags) : null,
+        originalPrice: originalPrice !== undefined ? originalPrice : null,
+        isRealPhoto: isRealPhoto !== undefined ? isRealPhoto : false,
+        badge: badge || null,
+        isNew: isNew !== undefined ? isNew : false,
       },
     })
 

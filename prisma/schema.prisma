@@ -36,9 +36,16 @@ model Product {
   image              String   // Main product image
   images             String   // JSON array of images
   compatibility      String?  // JSON string, optional
+  stockQuantity      Int      @default(0)
   inStock            Boolean  @default(true)
   featured           Boolean  @default(false)
   rating             Float    @default(5.0)
+  variants           String?  // JSON: [{name, options: [{label, price?}]}]
+  tags               String?  // JSON array of tags
+  originalPrice      Int?     // Prix barré avant promotion (optionnel)
+  isRealPhoto        Boolean  @default(false) // Photo réelle du produit
+  badge              String?  // Badge personnalisé ex: "Sélection premium"
+  isNew              Boolean  @default(false) // Nouveau produit
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 }
@@ -82,10 +89,60 @@ model ContactMessage {
   createdAt DateTime @default(now())
 }
 
+// Customer model - for customer authentication
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String   @unique
+  email     String?
+  password  String   // Hashed password
+  address   String?
+  city      String?  @default("Conakry")
+  orders    String?  // JSON array of order IDs for quick reference
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Coupon model - for discount codes
+model Coupon {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  type        String   @default("percentage") // percentage | fixed
+  value       Int      // Pourcentage (ex: 10) ou montant fixe en GNF
+  minOrder    Int?     // Montant minimum de commande
+  maxUses     Int?     // Nombre max d'utilisations
+  usedCount   Int      @default(0)
+  active      Boolean  @default(true)
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Review model - for product reviews
+model Review {
+  id         String   @id @default(cuid())
+  productId  String
+  customerId String?
+  customerName String
+  rating     Int      // 1-5
+  comment    String
+  approved   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
 // SiteSettings model - for site configuration
 model SiteSettings {
   id        String   @id @default(cuid())
   key       String   @unique
   value     String
   updatedAt DateTime @updatedAt
+}
+
+// Newsletter model - for email subscriptions
+model Newsletter {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
 }

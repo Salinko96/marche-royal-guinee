@@ -20,6 +20,7 @@ import {
   Loader2,
   MessageCircle,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 // Format prix en GNF
 const formatPrice = (price: number): string =>
@@ -49,6 +50,36 @@ export default function CheckoutPage() {
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderId, setOrderId] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [couponCode, setCouponCode] = useState('');
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponApplied, setCouponApplied] = useState('');
+  const [couponError, setCouponError] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+
+  const applyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setCouponLoading(true);
+    setCouponError('');
+    try {
+      const res = await fetch('/api/coupons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: couponCode, orderTotal: getTotalPrice() }),
+      });
+      const data = await res.json();
+      if (res.ok && data.valid) {
+        setCouponDiscount(data.coupon.discount);
+        setCouponApplied(data.coupon.code);
+      } else {
+        setCouponError(data.error || 'Code invalide');
+        setCouponDiscount(0);
+        setCouponApplied('');
+      }
+    } catch {
+      setCouponError('Erreur réseau');
+    }
+    setCouponLoading(false);
+  };
 
   // Rediriger si panier vide
   useEffect(() => {
@@ -88,8 +119,9 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           ...form,
           items: orderItems,
-          totalAmount: getTotalPrice(),
+          totalAmount: getTotalPrice() - couponDiscount,
           paymentMethod,
+          couponCode: couponApplied || undefined,
           status: 'pending',
           paymentStatus: 'pending',
         }),
@@ -97,15 +129,23 @@ export default function CheckoutPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setOrderId(data.id?.substring(0, 8) || 'NOUVEAU');
+        setOrderId(data.id?.substring(0, 8).toUpperCase() || 'NOUVEAU');
         setOrderPlaced(true);
         clearCart();
+        toast.success('Commande confirmée ! 🎉', {
+          description: 'Notre équipe vous contactera sous 24h.',
+          duration: 5000,
+        });
       } else {
         const err = await response.json();
-        alert(err.error || 'Erreur lors de la commande. Veuillez réessayer.');
+        toast.error('Erreur lors de la commande', {
+          description: err.error || 'Veuillez réessayer ou nous contacter sur WhatsApp.',
+        });
       }
     } catch {
-      alert('Connexion impossible. Vérifiez votre connexion internet.');
+      toast.error('Connexion impossible', {
+        description: 'Vérifiez votre connexion internet et réessayez.',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -317,7 +357,7 @@ export default function CheckoutPage() {
             ) : (
               <>
                 <CheckCircle className="mr-2" size={20} />
-                Confirmer la commande — {formatPrice(getTotalPrice())}
+                Confirmer la commande — {formatPrice(getTotalPrice() - couponDiscount)}
               </>
             )}
           </Button>
@@ -386,12 +426,46 @@ export default function CheckoutPage() {
               </div>
             </div>
 
+            {/* Code promo */}
+            <div className="mt-4 space-y-2">
+              <Label className="text-sm font-medium">Code promo</Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="PROMO2024"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value)}
+                  className="flex-1"
+                  disabled={!!couponApplied}
+                />
+                {couponApplied ? (
+                  <Button variant="outline" size="sm" onClick={() => {
+                    setCouponCode(''); setCouponDiscount(0); setCouponApplied(''); setCouponError('');
+                  }}>Retirer</Button>
+                ) : (
+                  <Button variant="outline" size="sm" onClick={applyCoupon} disabled={couponLoading}>
+                    {couponLoading ? '...' : 'Appliquer'}
+                  </Button>
+                )}
+              </div>
+              {couponError && <p className="text-xs text-red-500">{couponError}</p>}
+              {couponApplied && (
+                <p className="text-xs text-green-600">Coupon {couponApplied} appliqué : -{formatPrice(couponDiscount)}</p>
+              )}
+            </div>
+
             <Separator className="my-4" />
+
+            {couponDiscount > 0 && (
+              <div className="flex justify-between text-sm text-green-600 mb-2">
+                <span>Réduction</span>
+                <span>-{formatPrice(couponDiscount)}</span>
+              </div>
+            )}
 
             <div className="flex justify-between items-center">
               <span className="text-lg font-bold text-gray-900">Total</span>
               <span className="text-2xl font-bold text-amber-600">
-                {formatPrice(getTotalPrice())}
+                {formatPrice(getTotalPrice() - couponDiscount)}
               </span>
             </div>
           </Card>

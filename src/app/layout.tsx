@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "@/components/ui/toaster";
+import { Toaster } from "sonner";
 import FacebookPixel from "@/components/tracking/FacebookPixel";
 import GoogleAnalytics from "@/components/tracking/GoogleAnalytics";
 import ProductJsonLd from "@/components/seo/ProductJsonLd";
+import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,8 +21,8 @@ const geistMono = Geist_Mono({
 const productsForSeo = [
   {
     id: 1,
-    name: "Montre Richard Mille – Édition Tendance",
-    description: "Style luxe inspiré des modèles Richard Mille, idéale pour vos sorties, événements spéciaux et cadeaux marquants. Livraison à Conakry.",
+    name: "Montre Style Royal RM – Édition Tendance",
+    description: "Montre de style luxe contemporain, idéale pour vos sorties, événements spéciaux et cadeaux marquants. Livraison à Conakry.",
     price: 350000,
     image: "/blanche.jpg",
     images: ["/blanche.jpg", "/vert.jpg", "/noir.jpg", "/rouge.jpg", "/jaune.jpg", "/bleu.jpg"],
@@ -29,11 +30,11 @@ const productsForSeo = [
   },
   {
     id: 2,
-    name: "Montre Cartier – Élégance Classique",
-    description: "L'élégance classique inspirée de la maison Cartier pour vos occasions officielles, cérémonies et moments importants. Disponible à Conakry.",
+    name: "Montre Élégance Gold – Style Classique",
+    description: "Montre de style classique élégant pour vos occasions officielles, cérémonies et moments importants. Disponible à Conakry.",
     price: 500000,
-    image: "/precious duke.jpg",
-    images: ["/precious duke.jpg", "/_ (1).jpeg", "/_ (2).jpeg"],
+    image: "/precious-duke.jpg",
+    images: ["/precious-duke.jpg", "/montre-1.jpeg", "/montre-2.jpeg"],
     category: "Montres",
   },
   {
@@ -41,8 +42,8 @@ const productsForSeo = [
     name: "Coque AG Glass Premium",
     description: "Protection premium en verre trempé AG avec finition matte élégante. Résistance aux chocs 9H, anti-traces, design ultra-fin.",
     price: 480000,
-    image: "/Luxury Big Window AG Glass Matte.jpeg",
-    images: ["/Luxury Big Window AG Glass Matte.jpeg", "/Luxury Big Window AG Glass Matte (1).jpeg"],
+    image: "/luxury-glass-matte.jpeg",
+    images: ["/luxury-glass-matte.jpeg", "/luxury-glass-matte-2.jpeg"],
     category: "Accessoires Téléphone",
   },
 ];
@@ -58,16 +59,16 @@ export const metadata: Metadata = {
     "montre luxe Guinée",
     "accessoires téléphone Conakry",
     "MARCHÉ ROYAL DE GUINÉE",
-    "montre Richard Mille Guinée",
-    "montre Cartier Conakry",
+    "montre style luxe Guinée",
+    "montre élégance Conakry",
     "coque AG Glass premium",
     "livraison Conakry",
     "paiement à la livraison Guinée",
   ],
   authors: [{ name: "MARCHÉ ROYAL DE GUINÉE" }],
   icons: {
-    icon: "/7437519256192966656.png",
-    apple: "/7437519256192966656.png",
+    icon: "/icon-192.png",
+    apple: "/icon-192.png",
   },
   openGraph: {
     title: "MARCHÉ ROYAL DE GUINÉE | Montres & Accessoires Premium",
@@ -78,7 +79,7 @@ export const metadata: Metadata = {
     locale: "fr_GN",
     images: [
       {
-        url: "https://marcheroyalguinee.com/7437519256192966656.png",
+        url: "https://marcheroyalguinee.com/og-image.jpg",
         width: 1200,
         height: 630,
         alt: "MARCHÉ ROYAL DE GUINÉE - Montres et accessoires premium à Conakry",
@@ -89,7 +90,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "MARCHÉ ROYAL DE GUINÉE | Montres & Accessoires Premium",
     description: "Boutique en ligne premium en Guinée. Montres de luxe et accessoires à Conakry.",
-    images: ["https://marcheroyalguinee.com/7437519256192966656.png"],
+    images: ["https://marcheroyalguinee.com/og-image.jpg"],
   },
   robots: {
     index: true,
@@ -120,19 +121,39 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <head>
+        {/* DNS prefetch pour accélérer les ressources tierces */}
+        {/* Note: fonts gérées par next/font (auto-hébergées, pas besoin de preconnect) */}
+        <link rel="dns-prefetch" href="https://www.google-analytics.com" />
+        <link rel="dns-prefetch" href="https://connect.facebook.net" />
         {/* JSON-LD Structured Data pour les rich snippets */}
         <ProductJsonLd products={productsForSeo} />
+        {/* PWA Manifest */}
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#B8860B" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Marché Royal" />
+        <link rel="apple-touch-icon" href="/og-image.jpg" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
         suppressHydrationWarning
       >
         {children}
-        <Toaster />
+        <Toaster
+          position="top-right"
+          richColors
+          closeButton
+          toastOptions={{
+            style: { fontFamily: 'var(--font-geist-sans)' },
+          }}
+        />
 
         {/* Tracking Scripts (chargés après interaction) */}
         <FacebookPixel />
         <GoogleAnalytics />
+        {/* PWA Service Worker */}
+        <ServiceWorkerRegister />
       </body>
     </html>
   );
