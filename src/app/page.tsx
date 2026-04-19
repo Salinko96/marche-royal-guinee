@@ -2583,6 +2583,7 @@ export default function MarcheRoyalGuinee() {
               <h4 className="text-white font-semibold mb-3">Informations</h4>
               <ul className="space-y-2 text-sm mb-4">
                 {[
+                  { href: '/a-propos', label: 'À propos de nous' },
                   { href: '/cgv', label: 'Conditions générales de vente' },
                   { href: '/confidentialite', label: 'Politique de confidentialité' },
                   { href: '/mentions-legales', label: 'Mentions légales' },

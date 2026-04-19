@@ -6,6 +6,9 @@ import FacebookPixel from "@/components/tracking/FacebookPixel";
 import GoogleAnalytics from "@/components/tracking/GoogleAnalytics";
 import ProductJsonLd from "@/components/seo/ProductJsonLd";
 import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
+import WhatsAppBubble from "@/components/WhatsAppBubble";
+import ExitIntentPopup from "@/components/ExitIntentPopup";
+import PwaInstallPrompt from "@/components/PwaInstallPrompt";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -154,6 +157,10 @@ export default function RootLayout({
         <GoogleAnalytics />
         {/* PWA Service Worker */}
         <ServiceWorkerRegister />
+        {/* Global premium components */}
+        <WhatsAppBubble />
+        <ExitIntentPopup />
+        <PwaInstallPrompt />
       </body>
     </html>
   );

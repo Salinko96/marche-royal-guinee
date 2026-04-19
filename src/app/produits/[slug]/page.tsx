@@ -33,6 +33,9 @@ import {
   PackageX,
   ThumbsUp,
   Send,
+  Users,
+  Zap,
+  RefreshCw,
 } from "lucide-react";
 import ProductImageViewer from "@/components/product/ProductImageViewer";
 import { toast } from "sonner";
@@ -41,6 +44,7 @@ import { BrandLogo } from "@/components/ui/BrandLogo";
 import { useCartStore } from "@/store/cartStore";
 import { fbPixelEvent } from "@/components/tracking/FacebookPixel";
 import { gaEvent } from "@/components/tracking/GoogleAnalytics";
+import { motion } from "framer-motion";
 
 // ============================================
 // Composant avis clients
@@ -362,6 +366,9 @@ interface Product {
   rating: number;
   featured: boolean;
   inStock: boolean;
+  isNew?: boolean;
+  stockQuantity?: number;
+  badge?: string;
 }
 
 interface SimilarProduct {
@@ -492,6 +499,44 @@ export default function ProduitDetailPage() {
     gaEvent.addToCart({ ...product, id: String(product.id) });
   }, [product, addToCart, variants, selectedVariants, finalPrice, variantLabel]);
 
+  // Social proof — visiteurs simulés
+  const [viewers, setViewers] = useState(0);
+  useEffect(() => {
+    if (!product) return;
+    const base = 4 + Math.floor(Math.random() * 12);
+    setViewers(base);
+    const interval = setInterval(() => {
+      setViewers((v) => {
+        const delta = Math.random() > 0.5 ? 1 : -1;
+        return Math.max(3, Math.min(20, v + delta));
+      });
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [product]);
+
+  // Timer promo (24h renouvelé)
+  const [timeLeft, setTimeLeft] = useState({ h: 0, m: 0, s: 0 });
+  useEffect(() => {
+    if (!product?.originalPrice) return;
+    const stored = localStorage.getItem(`promo-end-${product.slug}`);
+    let end = stored ? Number(stored) : 0;
+    if (!end || end < Date.now()) {
+      end = Date.now() + 24 * 60 * 60 * 1000;
+      localStorage.setItem(`promo-end-${product.slug}`, String(end));
+    }
+    const tick = () => {
+      const diff = Math.max(0, end - Date.now());
+      setTimeLeft({
+        h: Math.floor(diff / 3600000),
+        m: Math.floor((diff % 3600000) / 60000),
+        s: Math.floor((diff % 60000) / 1000),
+      });
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [product]);
+
   // Partager
   const [showShareMenu, setShowShareMenu] = useState(false);
 
@@ -611,14 +656,21 @@ export default function ProduitDetailPage() {
           </div>
 
           {/* ---- COLONNE DROITE : INFOS ---- */}
-          <div>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
             {/* Badges */}
-            <div className="flex gap-2 mb-3">
+            <div className="flex flex-wrap gap-2 mb-3">
               <Badge className="bg-black/80 text-white">
                 {product.category}
               </Badge>
               {product.featured && (
                 <Badge className="bg-[#B8860B] text-white">Populaire</Badge>
+              )}
+              {product.isNew && (
+                <Badge className="bg-blue-500 text-white">Nouveau</Badge>
               )}
               {product.inStock ? (
                 <Badge className="bg-green-100 text-green-700">
@@ -628,6 +680,26 @@ export default function ProduitDetailPage() {
                 <Badge variant="destructive">Rupture de stock</Badge>
               )}
             </div>
+
+            {/* Stock faible */}
+            {product.inStock && (product.stockQuantity ?? 99) > 0 && (product.stockQuantity ?? 99) <= 5 && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex items-center gap-2 bg-orange-50 border border-orange-200 text-orange-700 text-sm font-medium px-3 py-2 rounded-lg mb-3"
+              >
+                <Zap className="h-4 w-4 flex-shrink-0" />
+                Plus que <strong>{product.stockQuantity ?? 1}</strong> en stock — commandez vite !
+              </motion.div>
+            )}
+
+            {/* Social proof */}
+            {viewers > 0 && (
+              <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-3">
+                <Users className="h-4 w-4 text-[#B8860B]" />
+                <span><strong className="text-gray-700">{viewers} personnes</strong> regardent ce produit en ce moment</span>
+              </div>
+            )}
 
             {/* Nom */}
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">
@@ -660,9 +732,38 @@ export default function ProduitDetailPage() {
 
             {/* Prix barré si promotion */}
             {product.originalPrice && product.originalPrice > finalPrice && (
-              <p className="text-lg text-gray-400 line-through mb-1">
-                {formatPrice(product.originalPrice)}
-              </p>
+              <div className="mb-3">
+                <p className="text-lg text-gray-400 line-through">
+                  {formatPrice(product.originalPrice)}
+                </p>
+                <span className="inline-block bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                  -{Math.round((1 - finalPrice / product.originalPrice) * 100)}%
+                </span>
+              </div>
+            )}
+
+            {/* Timer promo */}
+            {product.originalPrice && product.originalPrice > finalPrice && (timeLeft.h > 0 || timeLeft.m > 0) && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4"
+              >
+                <Clock className="h-4 w-4 text-red-500 flex-shrink-0" />
+                <span className="text-sm text-red-700 font-medium">Offre expire dans</span>
+                <div className="flex gap-1 ml-auto">
+                  {[
+                    { v: timeLeft.h, l: 'h' },
+                    { v: timeLeft.m, l: 'm' },
+                    { v: timeLeft.s, l: 's' },
+                  ].map(({ v, l }) => (
+                    <div key={l} className="bg-red-500 text-white rounded-lg px-2 py-1 text-center min-w-[36px]">
+                      <span className="text-sm font-black">{String(v).padStart(2, '0')}</span>
+                      <span className="text-[10px] block opacity-80">{l}</span>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
             )}
 
             {/* Description courte */}
@@ -772,6 +873,21 @@ export default function ProduitDetailPage() {
                   </button>
                 </div>
               )}
+            </div>
+
+            {/* Badges confiance */}
+            <div className="flex flex-wrap gap-2 mb-5">
+              {[
+                { icon: Shield, label: 'Qualité garantie' },
+                { icon: Truck, label: 'Livraison Conakry' },
+                { icon: RefreshCw, label: 'Retour 7 jours' },
+                { icon: CheckCircle, label: 'Paiement à la livraison' },
+              ].map(({ icon: Icon, label }) => (
+                <span key={label} className="inline-flex items-center gap-1.5 bg-gray-50 border border-gray-200 text-gray-600 text-xs font-medium px-3 py-1.5 rounded-full">
+                  <Icon className="h-3.5 w-3.5 text-[#B8860B]" />
+                  {label}
+                </span>
+              ))}
             </div>
 
             {/* Avantages */}
@@ -896,7 +1012,7 @@ export default function ProduitDetailPage() {
                 </AccordionItem>
               )}
             </Accordion>
-          </div>
+          </motion.div>
         </div>
       </main>
 
